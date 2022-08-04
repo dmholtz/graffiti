@@ -4,9 +4,9 @@ import g "github.com/dmholtz/graffiti/graph"
 
 // Encapsulates the output of a shortest path algorithm.
 type ShortestPathResult[W g.Weight] struct {
-	// Distance stores the shortest path distance between the source and the target node.
-	// The value of Distance is set to -1 iff such a path does not exist.
-	Distance W
+	// Length stores the length of the shortest path between the source and the target node.
+	// The value of Length is set to -1 iff such a path does not exist.
+	Length W
 	// Path is a slice of NodeId values that describe the shortest path from the source to the target node.
 	// The slice is empty iff such a path does not exist.
 	Path []g.NodeId
