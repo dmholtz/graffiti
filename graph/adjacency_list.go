@@ -2,7 +2,12 @@ package graph
 
 import "fmt"
 
-// Implementation of the Graph interface
+// The adjacency list is a graph data structure which stores for each node a list of its adjacent nodes.
+//
+// Please note: This implementation requires node indices from 0 to n-1, where n is the node count of the graph.
+// Graphs that do not fulfill this condition might be rather represented by an AdjacencyMapGraph.
+//
+// Implements the Graph interface
 type AdjacencyListGraph[N any, E IHalfEdge] struct {
 	Nodes      []N   // stores the nodes
 	Edges      [][]E // adjacency list: stores the leaving edges for each node
