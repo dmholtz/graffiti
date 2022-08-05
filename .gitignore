@@ -18,7 +18,8 @@
 !README.md
 !LICENSE
 
-# !Makefile
+# testdata
+!**/testdata/*.gob
 
 # ...even if they are in subdirectories
 !*/
