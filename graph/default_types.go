@@ -15,21 +15,21 @@ type GeoPoint struct {
 
 // Simple implementation of a weighted half edge without any additional metadata
 type WeightedHalfEdge[W Weight] struct {
-	to     NodeId
-	weight W
+	To_     NodeId
+	Weight_ W
 }
 
 // Constructor method
 func NewWeightedHalfEdge[W Weight](to int, weight W) WeightedHalfEdge[W] {
-	return WeightedHalfEdge[W]{to: to, weight: weight}
+	return WeightedHalfEdge[W]{To_: to, Weight_: weight}
 }
 
 // To implements IHalfEdge.To
 func (e WeightedHalfEdge[W]) To() NodeId {
-	return e.to
+	return e.To_
 }
 
 // Weight implements IWeightedHalfEdge.Weight
 func (e WeightedHalfEdge[W]) Weight() W {
-	return e.weight
+	return e.Weight_
 }
