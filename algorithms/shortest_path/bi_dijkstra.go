@@ -9,7 +9,7 @@ import (
 // Bidirectional Dijkstra runs a forward search from the source node to the target node in parallel with
 // a backward search in the backward graph (transpose) from the target node to the source node.
 //
-// Bidirectional search requires the both forward graph and its transpose (backward graph) as input parameters.
+// Bidirectional search requires both the forward graph and its transpose (backward graph) as input parameters.
 // In case of undirected graphs, the same argument may be passed for both parameters.
 //
 // Reference: https://www.homepages.ucl.ac.uk/~ucahmto/math/2020/05/30/bidirectional-dijkstra.html
