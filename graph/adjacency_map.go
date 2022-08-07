@@ -40,3 +40,31 @@ func (amg *AdjacencyMapGraph[N, E]) GetHalfEdgesFrom(id NodeId) []E {
 	}
 	return edges
 }
+
+// AddNode(id, node) adds or overwrites a node with ID=id.
+func (amg *AdjacencyMapGraph[N, E]) AddNode(id NodeId, n N) {
+	amg.Nodes[id] = n
+	if _, ok := amg.Edges[id]; !ok {
+		amg.Edges[id] = make([]E, 0)
+	}
+}
+
+// InsertHalfEdge(tail, e) inserts a new half edge e from tail node with ID='tail' to the graph.
+// The method fails iff either tail or head node of the edge do not exist.
+// If the same edge already exists, nothing is changed, i.e. duplicate edges are ignored.
+func (amg *AdjacencyMapGraph[N, E]) InsertHalfEdge(tail NodeId, e E) {
+	if tail < 0 || tail >= amg.NodeCount() {
+		panic(fmt.Sprintf("AdjacencyMapGraph does not contain the tail node with ID=%d.\n", tail))
+	}
+	if e.To() < 0 || e.To() >= amg.NodeCount() {
+		panic(fmt.Sprintf("AdjacencyMapGraph does not contain the head node with ID=%d of the edge %v.\n", e.To(), e))
+	}
+	// check for duplicates
+	for _, leavingEdge := range amg.Edges[tail] {
+		if e.To() == leavingEdge.To() {
+			return // ignore duplicate edges
+		}
+	}
+	amg.Edges[tail] = append(amg.Edges[tail], e)
+	amg.EdgeCount_++
+}
