@@ -2,6 +2,11 @@ package graph
 
 import "fmt"
 
+// The adjacency map is a graph data structure which stores for each node a list of its adjacent nodes.
+// Unlike the adjacency list, the node IDs do not necessarily have to be in the range from 0 to n-1 but may be arbitrary (but unique) integers.
+// This flexibility comes at the expense of linear space overhead in the number of nodes due to the underlying map datastructure.
+//
+// Implements the Graph interface
 type AdjacencyMapGraph[N any, E IHalfEdge] struct {
 	Nodes      map[NodeId]N
 	Edges      map[NodeId][]E
