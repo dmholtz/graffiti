@@ -18,3 +18,14 @@ type ShortestPathResult[W g.Weight] struct {
 	// SearchSpace is 'nil' iff the algorithm has been instructed not to record the search space.
 	SearchSpace []g.NodeId
 }
+
+// ShortestPathTreeNode encapsulates the directed, acyclic search graph (tree) spanned by Dijkstra's algorithm.
+type ShortestPathTreeNode struct {
+	// Id is the root element of this search tree and refers to a Node ID in the graph on which Dijkstra's algorithm has been applied.
+	Id g.NodeId
+	// Children is a list of pointers to subtrees, each referring to a node that is reached on a shortest path from the source node via this node (ID=Id).
+	Children []*ShortestPathTreeNode
+	// Visited is a boolean flag to mark nodes that have already been visited while traversing the search graph.
+	// Caution: It is not possible to make use of this flag for more than one traversal (without resetting it).
+	Visited bool
+}
