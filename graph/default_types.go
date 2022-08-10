@@ -57,6 +57,47 @@ func (fhe FlaggedHalfEdge[W, F]) IsFlagged(p PartitionId) bool {
 }
 
 // Adds a flag for partition p to the half edge
-func (fhe *FlaggedHalfEdge[W, F]) AddFlag(p PartitionId) {
+func (fhe FlaggedHalfEdge[W, F]) AddFlag(p PartitionId) IFlaggedHalfEdge[W] {
 	fhe.Flag = fhe.Flag | (1 << p)
+	return fhe
+}
+
+// Adds a flag for partition p to the half edge
+func (fhe FlaggedHalfEdge[W, F]) ResetFlag() IFlaggedHalfEdge[W] {
+	fhe.Flag = 0
+	return fhe
+}
+
+// Simple implementation of a half edge with two level arc flags.
+type TwoLevelFlaggedHalfEdge[W Weight, F1, F2 FlagType] struct {
+	WeightedHalfEdge[W]
+	L1Flag F1
+	L2Flag F2
+}
+
+// IsL1Flagged implements ITwoLevelFlaggedHalfEdge.IsL1Flagged
+func (fhe TwoLevelFlaggedHalfEdge[W, F1, F2]) IsL1Flagged(p PartitionId) bool {
+	return (fhe.L1Flag & (1 << p)) > 0
+}
+
+// IsL2Flagged implements ITwoLevelFlaggedHalfEdge.IsL2Flagged
+func (fhe TwoLevelFlaggedHalfEdge[W, F1, F2]) IsL2Flagged(p PartitionId) bool {
+	return (fhe.L2Flag & (1 << p)) > 0
+}
+
+func (fhe TwoLevelFlaggedHalfEdge[W, F1, F2]) AddL1Flag(p PartitionId) ITwoLevelFlaggedHalfEdge[W] {
+	fhe.L1Flag = fhe.L1Flag | (1 << p)
+	return fhe
+}
+
+func (fhe TwoLevelFlaggedHalfEdge[W, F1, F2]) AddL2Flag(p PartitionId) ITwoLevelFlaggedHalfEdge[W] {
+	fhe.L1Flag = fhe.L1Flag | (1 << p)
+	return fhe
+}
+
+// Adds a flag for partition p to the half edge
+func (fhe TwoLevelFlaggedHalfEdge[W, F1, F2]) ResetFlags() ITwoLevelFlaggedHalfEdge[W] {
+	fhe.L1Flag = 0
+	fhe.L2Flag = 0
+	return fhe
 }
