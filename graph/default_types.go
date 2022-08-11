@@ -45,10 +45,22 @@ func (e WeightedHalfEdge[W]) Weight() W {
 	return e.Weight_
 }
 
-// Simple implementation of a half edge with unsigned integer arc flag.
+// Simple implementation of a weighted half edge with unsigned integer arc flag.
 type FlaggedHalfEdge[W Weight, F FlagType] struct {
-	WeightedHalfEdge[W]
-	Flag F
+	// TODO revert to nested struct once bug in golang has been fixed
+	To_     int
+	Weight_ W
+	Flag    F
+}
+
+// To implements IFlaggedHalfEdge.To
+func (fhe FlaggedHalfEdge[W, F]) To() NodeId {
+	return fhe.To_
+}
+
+// Weight implements IFlaggedHalfEdge.Weight
+func (fhe FlaggedHalfEdge[W, F]) Weight() W {
+	return fhe.Weight_
 }
 
 // IsFlagged implements IFlaggedHalfEdge.IsFlagged
@@ -70,9 +82,21 @@ func (fhe FlaggedHalfEdge[W, F]) ResetFlag() IFlaggedHalfEdge[W] {
 
 // Simple implementation of a half edge with two level arc flags.
 type TwoLevelFlaggedHalfEdge[W Weight, F1, F2 FlagType] struct {
-	WeightedHalfEdge[W]
-	L1Flag F1
-	L2Flag F2
+	// TODO revert to nested struct once bug in golang has been fixed
+	To_     int
+	Weight_ W
+	L1Flag  F1
+	L2Flag  F2
+}
+
+// To implements ITwoLevelFlaggedHalfEdge.To
+func (fhe TwoLevelFlaggedHalfEdge[W, F1, F2]) To() NodeId {
+	return fhe.To_
+}
+
+// Weight implements ITwoLevelFlaggedHalfEdge.Weight
+func (fhe TwoLevelFlaggedHalfEdge[W, F1, F2]) Weight() W {
+	return fhe.Weight_
 }
 
 // IsL1Flagged implements ITwoLevelFlaggedHalfEdge.IsL1Flagged

@@ -31,5 +31,5 @@ func loadGraph(filename string) g.Graph[g.GeoPoint, g.WeightedHalfEdge[int]] {
 
 func TestDijkstra(t *testing.T) {
 	aag := loadGraph(defaultGraphFile)
-	fmt.Println(aag.NodeCount())
+	t.Log(aag.NodeCount())
 }
