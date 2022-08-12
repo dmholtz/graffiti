@@ -33,7 +33,7 @@ type addTwoLevelFlagJob struct {
 	from      g.NodeId
 	to        g.NodeId
 	partition g.PartitionId
-	kind      int
+	kind      uint8
 }
 
 // Implementation with restricted types due to syntactic limitations of Golang
