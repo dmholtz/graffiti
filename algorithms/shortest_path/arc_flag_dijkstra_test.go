@@ -55,5 +55,5 @@ func TestArcFlagDijkstra(t *testing.T) {
 		dijkstraPqPops += dijkstraResult.PqPops
 		arcFlagDijkstraPqPops += arcFlagDijkstraResult.PqPops
 	}
-	t.Logf("Avgerage number of Pop() operations on priority queue: %d (Dijkstra), %d (BiDijkstra)", dijkstraPqPops/n, arcFlagDijkstraPqPops/n)
+	t.Logf("Avgerage number of Pop() operations on priority queue: %d (Dijkstra), %d (ArcFlagDijkstra)", dijkstraPqPops/n, arcFlagDijkstraPqPops/n)
 }

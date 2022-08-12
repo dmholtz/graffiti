@@ -115,7 +115,7 @@ func (fhe TwoLevelFlaggedHalfEdge[W, F1, F2]) AddL1Flag(p PartitionId) ITwoLevel
 }
 
 func (fhe TwoLevelFlaggedHalfEdge[W, F1, F2]) AddL2Flag(p PartitionId) ITwoLevelFlaggedHalfEdge[W] {
-	fhe.L1Flag = fhe.L1Flag | (1 << p)
+	fhe.L2Flag = fhe.L2Flag | (1 << p)
 	return fhe
 }
 
