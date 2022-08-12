@@ -205,13 +205,12 @@ func l1BoundaryBackwardSearch[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], 
 		// pop
 		treeNode := stack[len(stack)-1]
 		stack = stack[0 : len(stack)-1]
-		if treeNode.Visited {
-			continue
-		}
-		treeNode.Visited = true
 
 		for _, child := range treeNode.Children {
-			stack = append(stack, child)
+			if !child.Visited {
+				stack = append(stack, child)
+			}
+			child.Visited = true
 
 			tailRev := treeNode.Id
 			headRev := child.Id
@@ -242,13 +241,12 @@ func l2BoundaryBackwardSearch[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], 
 		// pop
 		treeNode := stack[len(stack)-1]
 		stack = stack[0 : len(stack)-1]
-		if treeNode.Visited {
-			continue
-		}
-		treeNode.Visited = true
 
 		for _, child := range treeNode.Children {
-			stack = append(stack, child)
+			if !child.Visited {
+				stack = append(stack, child)
+			}
+			child.Visited = true
 
 			tailRev := treeNode.Id
 			headRev := child.Id
