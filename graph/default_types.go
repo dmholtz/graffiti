@@ -22,6 +22,23 @@ func (pgp PartGeoPoint) Partition() PartitionId {
 	return pgp.Partition_
 }
 
+// Implementation of a GeoPoint node for a two level partitioned graph
+type TwoLevelPartGeoPoint struct {
+	GeoPoint
+	L1Part_ PartitionId
+	L2Part_ PartitionId
+}
+
+// L1Part implements Partitioner.L1Part
+func (pgp TwoLevelPartGeoPoint) L1Part() PartitionId {
+	return pgp.L1Part_
+}
+
+// L2Part implements Partitioner.L2Part
+func (pgp TwoLevelPartGeoPoint) L2Part() PartitionId {
+	return pgp.L2Part_
+}
+
 // Edge types
 
 // Simple implementation of a weighted half edge without any additional metadata

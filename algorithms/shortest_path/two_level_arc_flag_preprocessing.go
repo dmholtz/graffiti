@@ -20,7 +20,7 @@ func level2_partition(p g.PartitionId) g.PartitionId {
 const (
 	// A l1-boundary node is a node at the boundary of a level 1 region.
 	l1_BOUNDARY_NODE = iota
-	// A l2-boundary node is a node at the boundary of a level 2 region but without a level 1 boundary.
+	// A l2-boundary node is a node at the boundary of a level 2 region. Every l1-boundary node is also a l2-boundary node.
 	l2_BOUNDARY_NODE = iota
 )
 
@@ -64,22 +64,15 @@ func ComputeTwoLevelArcFlags[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W
 	// determine l1 boundary nodes
 	for tailNodeId, tailNode := range faag.Nodes {
 		tailL1Part := level1_partition(tailNode.Partition())
-		for _, edge := range faag.GetHalfEdgesFrom(tailNodeId) {
-			headL1Part := level1_partition(faag.GetNode(edge.To()).Partition())
-			if tailL1Part != headL1Part {
-				l1BoundaryNodes[headL1Part][edge.To()] = struct{}{}
-			}
-		}
-	}
-
-	// determine l2 boundary nodes
-	for tailNodeId, tailNode := range faag.Nodes {
 		tailL2Part := level2_partition(tailNode.Partition())
 		for _, edge := range faag.GetHalfEdgesFrom(tailNodeId) {
 			headL1Part := level1_partition(faag.GetNode(edge.To()).Partition())
 			headL2Part := level2_partition(faag.GetNode(edge.To()).Partition())
-			if _, ok := l1BoundaryNodes[headL1Part][edge.To()]; !ok {
-				// edge.To() is not a l1 boundary node
+			if tailL1Part != headL1Part {
+				l1BoundaryNodes[headL1Part][edge.To()] = struct{}{}
+				l2BoundaryNodes[headL1Part][headL2Part][edge.To()] = struct{}{}
+			} else {
+				// same l1 partition
 				if tailL2Part != headL2Part {
 					l2BoundaryNodes[headL1Part][headL2Part][edge.To()] = struct{}{}
 				}
@@ -87,13 +80,13 @@ func ComputeTwoLevelArcFlags[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W
 		}
 	}
 
-	jobs := make(chan addTwoLevelFlagJob, 1<<10)
+	l1Jobs := make(chan addFlagJob, 1<<16)
 	done := make(chan bool)
 	guard := make(chan struct{}, MAX_GOROUTINES)
 	wg := sync.WaitGroup{}
 
 	// start consumer
-	go addTwoLevelFlag[N, E, W](jobs, faag, done)
+	go addLevel1Flag[N, E, W](l1Jobs, faag, done)
 
 	for l1Part, nodeSet := range l1BoundaryNodes {
 		setSize := len(nodeSet)
@@ -101,7 +94,7 @@ func ComputeTwoLevelArcFlags[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W
 		fmt.Printf("Partition: %d, size=%d\n", l1Part, setSize)
 		for boundaryNodeId := range nodeSet {
 			guard <- struct{}{}
-			go l1BoundaryBackwardSearch[N, E, W](jobs, forwardGraph, transposedGraph, boundaryNodeId, &wg, guard)
+			go l1BoundaryBackwardSearch[N, E, W](l1Jobs, forwardGraph, transposedGraph, boundaryNodeId, &wg, guard)
 		}
 	}
 
@@ -110,14 +103,19 @@ func ComputeTwoLevelArcFlags[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W
 		tailL1Part := level1_partition(faag.GetNode(i).Partition())
 		for _, halfEdge := range faag.GetHalfEdgesFrom(i) {
 			if tailL1Part == level1_partition(faag.GetNode(halfEdge.To()).Partition()) {
-				jobs <- addTwoLevelFlagJob{from: i, to: halfEdge.To(), partition: tailL1Part, kind: l1_JOB}
+				l1Jobs <- addFlagJob{from: i, to: halfEdge.To(), partition: tailL1Part}
 			}
 		}
 	}
 
 	wg.Wait()
+	close(l1Jobs)
+	<-done
 	fmt.Println("Done with L1 boundary nodes.")
 	// l1 partitions are now done
+
+	jobs := make(chan addTwoLevelFlagJob, 1<<10)
+	go addTwoLevelFlag[N, E, W](jobs, faag, done)
 
 	// precompute the l1 partition size for each l1 partition
 	l1PartSizes := make(map[g.PartitionId]int)
@@ -190,13 +188,26 @@ func addTwoLevelFlag[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weigh
 	done <- true
 }
 
+// (single) consumer
+func addLevel1Flag[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](jobs <-chan addFlagJob, faag *g.AdjacencyArrayGraph[N, E], done chan<- bool) {
+	for job := range jobs {
+		for i := faag.Offsets[job.from]; i < faag.Offsets[job.from+1]; i++ {
+			edge := faag.Edges[i]
+			if edge.To() == job.to {
+				faag.Edges[i] = edge.AddL1Flag(job.partition).(E)
+				break
+			}
+		}
+	}
+	done <- true
+}
+
 // producer function
 // TODO change edge type to IWeightedHalfEdge??
-func l1BoundaryBackwardSearch[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](jobs chan<- addTwoLevelFlagJob, forwardGraph, transposedGraph g.Graph[N, E], boundaryNodeId g.NodeId, wg *sync.WaitGroup, guard <-chan struct{}) {
+func l1BoundaryBackwardSearch[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](jobs chan<- addFlagJob, forwardGraph, transposedGraph g.Graph[N, E], boundaryNodeId g.NodeId, wg *sync.WaitGroup, guard <-chan struct{}) {
 	// calculate in reverse graph
 	tree := ShortestPathTree[N, E, W](transposedGraph, boundaryNodeId)
 	l1Part := level1_partition(forwardGraph.GetNode(boundaryNodeId).Partition())
-	l2Part := level2_partition(forwardGraph.GetNode(boundaryNodeId).Partition())
 
 	stack := make([]*ShortestPathTreeNode, 0)
 	stack = append(stack, &tree)
@@ -207,19 +218,17 @@ func l1BoundaryBackwardSearch[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], 
 		stack = stack[0 : len(stack)-1]
 
 		for _, child := range treeNode.Children {
-			if !child.Visited {
-				stack = append(stack, child)
+			if child.Visited {
+				continue
 			}
 			child.Visited = true
 
 			tailRev := treeNode.Id
 			headRev := child.Id
+			jobs <- addFlagJob{from: headRev, to: tailRev, partition: l1Part}
 
-			if level1_partition(forwardGraph.GetNode(headRev).Partition()) == l1Part && level1_partition(forwardGraph.GetNode(tailRev).Partition()) == l1Part {
-				// no l1 arc flags within l1 partitions are set here to avoid redundant computations
-				jobs <- addTwoLevelFlagJob{from: headRev, to: tailRev, partition: l2Part, kind: l2_JOB}
-			} else {
-				jobs <- addTwoLevelFlagJob{from: headRev, to: tailRev, partition: l1Part, kind: l1_JOB}
+			if level1_partition(forwardGraph.GetNode(child.Id).Partition()) != l1Part {
+				stack = append(stack, child)
 			}
 		}
 	}

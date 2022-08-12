@@ -8,6 +8,11 @@ type Partitioner interface {
 	Partition() PartitionId
 }
 
+type TwoLevelPartitioner interface {
+	L1Part() PartitionId
+	L2Part() PartitionId
+}
+
 // Arc flags are unsigned integers.
 type FlagType interface {
 	uint64 | uint32 | uint16 | uint8
