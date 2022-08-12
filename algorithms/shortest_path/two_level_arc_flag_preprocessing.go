@@ -214,9 +214,12 @@ func l1BoundaryBackwardSearch[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], 
 
 			tailRev := treeNode.Id
 			headRev := child.Id
-			jobs <- addTwoLevelFlagJob{from: headRev, to: tailRev, partition: l1Part, kind: l1_JOB}
+
 			if level1_partition(forwardGraph.GetNode(headRev).Partition()) == l1Part && level1_partition(forwardGraph.GetNode(tailRev).Partition()) == l1Part {
+				// no l1 arc flags within l1 partitions are set here to avoid redundant computations
 				jobs <- addTwoLevelFlagJob{from: headRev, to: tailRev, partition: l2Part, kind: l2_JOB}
+			} else {
+				jobs <- addTwoLevelFlagJob{from: headRev, to: tailRev, partition: l1Part, kind: l1_JOB}
 			}
 		}
 	}
