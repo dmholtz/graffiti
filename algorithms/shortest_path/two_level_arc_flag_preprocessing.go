@@ -8,14 +8,6 @@ import (
 	g "github.com/dmholtz/graffiti/graph"
 )
 
-func level1_partition(p g.PartitionId) g.PartitionId {
-	return p / 32
-}
-
-func level2_partition(p g.PartitionId) g.PartitionId {
-	return p % 32
-}
-
 // Type of boundary node
 const (
 	// A l1-boundary node is a node at the boundary of a level 1 region.
@@ -37,7 +29,7 @@ type addTwoLevelFlagJob struct {
 }
 
 // Implementation with restricted types due to syntactic limitations of Golang
-func ComputeTwoLevelArcFlags[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](forwardGraph, transposedGraph g.Graph[N, E]) *g.AdjacencyArrayGraph[N, E] {
+func ComputeTwoLevelArcFlags[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](forwardGraph, transposedGraph g.Graph[N, E]) *g.AdjacencyArrayGraph[N, E] {
 
 	l1PartCount := g.PartitionId(32)
 	l2PartCount := g.PartitionId(32)
@@ -63,11 +55,11 @@ func ComputeTwoLevelArcFlags[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W
 
 	// determine l1 boundary nodes
 	for tailNodeId, tailNode := range faag.Nodes {
-		tailL1Part := level1_partition(tailNode.Partition())
-		tailL2Part := level2_partition(tailNode.Partition())
+		tailL1Part := tailNode.L1Part()
+		tailL2Part := tailNode.L2Part()
 		for _, edge := range faag.GetHalfEdgesFrom(tailNodeId) {
-			headL1Part := level1_partition(faag.GetNode(edge.To()).Partition())
-			headL2Part := level2_partition(faag.GetNode(edge.To()).Partition())
+			headL1Part := faag.GetNode(edge.To()).L1Part()
+			headL2Part := faag.GetNode(edge.To()).L2Part()
 			if tailL1Part != headL1Part {
 				l1BoundaryNodes[headL1Part][edge.To()] = struct{}{}
 				l2BoundaryNodes[headL1Part][headL2Part][edge.To()] = struct{}{}
@@ -100,9 +92,9 @@ func ComputeTwoLevelArcFlags[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W
 
 	//revise edges within the same l1 partition
 	for i := 0; i < faag.NodeCount(); i++ {
-		tailL1Part := level1_partition(faag.GetNode(i).Partition())
+		tailL1Part := faag.GetNode(i).L1Part()
 		for _, halfEdge := range faag.GetHalfEdgesFrom(i) {
-			if tailL1Part == level1_partition(faag.GetNode(halfEdge.To()).Partition()) {
+			if tailL1Part == faag.GetNode(halfEdge.To()).L1Part() {
 				l1Jobs <- addFlagJob{from: i, to: halfEdge.To(), partition: tailL1Part}
 			}
 		}
@@ -120,7 +112,7 @@ func ComputeTwoLevelArcFlags[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W
 	// precompute the l1 partition size for each l1 partition
 	l1PartSizes := make(map[g.PartitionId]int)
 	for _, node := range faag.Nodes {
-		l1Part := level1_partition(node.Partition())
+		l1Part := node.L1Part()
 		if _, ok := l1PartSizes[l1Part]; !ok {
 			l1PartSizes[l1Part] = 1
 		} else {
@@ -149,11 +141,11 @@ func ComputeTwoLevelArcFlags[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W
 
 	// revise edges within the same l2 partition
 	for i := 0; i < faag.NodeCount(); i++ {
-		tailL1Part := level1_partition(faag.GetNode(i).Partition())
-		tailL2Part := level2_partition(faag.GetNode(i).Partition())
+		tailL1Part := faag.GetNode(i).L1Part()
+		tailL2Part := faag.GetNode(i).L2Part()
 		for _, halfEdge := range faag.GetHalfEdgesFrom(i) {
-			if tailL1Part == level1_partition(faag.GetNode(halfEdge.To()).Partition()) {
-				if tailL2Part == level2_partition(faag.GetNode(halfEdge.To()).Partition()) {
+			if tailL1Part == (faag.GetNode(halfEdge.To()).L1Part()) {
+				if tailL2Part == (faag.GetNode(halfEdge.To()).L2Part()) {
 					jobs <- addTwoLevelFlagJob{from: i, to: halfEdge.To(), partition: tailL2Part, kind: l2_JOB}
 				}
 			}
@@ -168,7 +160,7 @@ func ComputeTwoLevelArcFlags[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W
 }
 
 // (single) consumer
-func addTwoLevelFlag[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](jobs <-chan addTwoLevelFlagJob, faag *g.AdjacencyArrayGraph[N, E], done chan<- bool) {
+func addTwoLevelFlag[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](jobs <-chan addTwoLevelFlagJob, faag *g.AdjacencyArrayGraph[N, E], done chan<- bool) {
 	for job := range jobs {
 		for i := faag.Offsets[job.from]; i < faag.Offsets[job.from+1]; i++ {
 			edge := faag.Edges[i]
@@ -189,7 +181,7 @@ func addTwoLevelFlag[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weigh
 }
 
 // (single) consumer
-func addLevel1Flag[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](jobs <-chan addFlagJob, faag *g.AdjacencyArrayGraph[N, E], done chan<- bool) {
+func addLevel1Flag[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](jobs <-chan addFlagJob, faag *g.AdjacencyArrayGraph[N, E], done chan<- bool) {
 	for job := range jobs {
 		for i := faag.Offsets[job.from]; i < faag.Offsets[job.from+1]; i++ {
 			edge := faag.Edges[i]
@@ -204,10 +196,10 @@ func addLevel1Flag[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight]
 
 // producer function
 // TODO change edge type to IWeightedHalfEdge??
-func l1BoundaryBackwardSearch[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](jobs chan<- addFlagJob, forwardGraph, transposedGraph g.Graph[N, E], boundaryNodeId g.NodeId, wg *sync.WaitGroup, guard <-chan struct{}) {
+func l1BoundaryBackwardSearch[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](jobs chan<- addFlagJob, forwardGraph, transposedGraph g.Graph[N, E], boundaryNodeId g.NodeId, wg *sync.WaitGroup, guard <-chan struct{}) {
 	// calculate in reverse graph
 	tree := ShortestPathTree[N, E, W](transposedGraph, boundaryNodeId)
-	l1Part := level1_partition(forwardGraph.GetNode(boundaryNodeId).Partition())
+	l1Part := forwardGraph.GetNode(boundaryNodeId).L1Part()
 
 	stack := make([]*ShortestPathTreeNode, 0)
 	stack = append(stack, &tree)
@@ -227,7 +219,7 @@ func l1BoundaryBackwardSearch[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], 
 			headRev := child.Id
 			jobs <- addFlagJob{from: headRev, to: tailRev, partition: l1Part}
 
-			if level1_partition(forwardGraph.GetNode(child.Id).Partition()) != l1Part {
+			if forwardGraph.GetNode(child.Id).L1Part() != l1Part {
 				stack = append(stack, child)
 			}
 		}
@@ -239,9 +231,9 @@ func l1BoundaryBackwardSearch[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], 
 
 // producer function
 // TODO change edge type to IWeightedHalfEdge??
-func l2BoundaryBackwardSearch[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](jobs chan<- addTwoLevelFlagJob, forwardGraph, transposedGraph g.Graph[N, E], boundaryNodeId g.NodeId, l1PartSize int, wg *sync.WaitGroup, guard <-chan struct{}) {
-	l1Part := level1_partition(forwardGraph.GetNode(boundaryNodeId).Partition())
-	l2Part := level2_partition(forwardGraph.GetNode(boundaryNodeId).Partition())
+func l2BoundaryBackwardSearch[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](jobs chan<- addTwoLevelFlagJob, forwardGraph, transposedGraph g.Graph[N, E], boundaryNodeId g.NodeId, l1PartSize int, wg *sync.WaitGroup, guard <-chan struct{}) {
+	l1Part := forwardGraph.GetNode(boundaryNodeId).L1Part()
+	l2Part := forwardGraph.GetNode(boundaryNodeId).L2Part()
 
 	// calculate in reverse graph
 	tree := prundedShortestPathTree[N, E, W](transposedGraph, boundaryNodeId, l1Part, l1PartSize)
@@ -262,7 +254,7 @@ func l2BoundaryBackwardSearch[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], 
 
 			tailRev := treeNode.Id
 			headRev := child.Id
-			if level1_partition(forwardGraph.GetNode(headRev).Partition()) == l1Part && level1_partition(forwardGraph.GetNode(tailRev).Partition()) == l1Part {
+			if forwardGraph.GetNode(headRev).L1Part() == l1Part && forwardGraph.GetNode(tailRev).L1Part() == l1Part {
 				jobs <- addTwoLevelFlagJob{from: headRev, to: tailRev, partition: l2Part, kind: l2_JOB}
 			}
 		}
@@ -273,7 +265,7 @@ func l2BoundaryBackwardSearch[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], 
 }
 
 // Pruned variant of ShortestPathTree method: Search stops once every node of the specified l1-partition has been settled.
-func prundedShortestPathTree[N g.Partitioner, E g.IWeightedHalfEdge[W], W g.Weight](graph g.Graph[N, E], source g.NodeId, l1Part g.PartitionId, l1PartSize int) ShortestPathTreeNode {
+func prundedShortestPathTree[N g.TwoLevelPartitioner, E g.IWeightedHalfEdge[W], W g.Weight](graph g.Graph[N, E], source g.NodeId, l1Part g.PartitionId, l1PartSize int) ShortestPathTreeNode {
 	dijkstraItems := make([]*ShortestPathTreePqItem[W], graph.NodeCount(), graph.NodeCount())
 	dijkstraItems[source] = &ShortestPathTreePqItem[W]{Id: source, Priority: 0, Predecessors: make([]int, 0)}
 
@@ -288,7 +280,7 @@ func prundedShortestPathTree[N g.Partitioner, E g.IWeightedHalfEdge[W], W g.Weig
 		currentPqItem := heap.Pop(&pq).(*ShortestPathTreePqItem[W])
 		currentNodeId := currentPqItem.Id
 
-		if level1_partition(graph.GetNode(currentNodeId).Partition()) == l1Part {
+		if graph.GetNode(currentNodeId).L1Part() == l1Part {
 			l1SettledCount += 1
 		}
 

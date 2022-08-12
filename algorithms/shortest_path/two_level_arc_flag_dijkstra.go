@@ -7,7 +7,7 @@ import (
 )
 
 // Implementation of Dijkstra's Algorithm with arc flags
-func TwoLevelArcFlagDijkstra[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](graph g.Graph[N, E], source, target g.NodeId, recordSearchSpace bool) ShortestPathResult[W] {
+func TwoLevelArcFlagDijkstra[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](graph g.Graph[N, E], source, target g.NodeId, recordSearchSpace bool) ShortestPathResult[W] {
 	var searchSpace []g.NodeId = nil
 	if recordSearchSpace {
 		searchSpace = make([]g.NodeId, 0)
@@ -20,8 +20,8 @@ func TwoLevelArcFlagDijkstra[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W
 	heap.Init(&pq)
 	heap.Push(&pq, dijkstraItems[source])
 
-	l1TargetPartition := level1_partition(graph.GetNode(target).Partition())
-	l2TargetPartition := level2_partition(graph.GetNode(target).Partition())
+	l1TargetPartition := graph.GetNode(target).L1Part()
+	l2TargetPartition := graph.GetNode(target).L2Part()
 
 	pqPops := 0
 	for len(pq) > 0 {
@@ -39,7 +39,7 @@ func TwoLevelArcFlagDijkstra[N g.Partitioner, E g.ITwoLevelFlaggedHalfEdge[W], W
 			}
 
 			successor := edge.To()
-			if level1_partition(graph.GetNode(currentNodeId).Partition()) == l1TargetPartition && level1_partition(graph.GetNode(successor).Partition()) == l1TargetPartition {
+			if graph.GetNode(currentNodeId).L1Part() == l1TargetPartition && graph.GetNode(successor).L1Part() == l1TargetPartition {
 				if !edge.IsL2Flagged(l2TargetPartition) {
 					continue
 				}
