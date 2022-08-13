@@ -88,16 +88,7 @@ func backwardSearch[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.Weight](jobs c
 	tree := ShortestPathTree[N, E, W](transposedGraph, boundaryNodeId)
 
 	stack := make([]*ShortestPathTreeNode, 0)
-	for _, child := range tree.Children {
-		if forwardGraph.GetNode(child.Id).Partition() != partition {
-			// add edge
-			tailRev := tree.Id
-			headRev := child.Id
-			jobs <- addFlagJob{from: headRev, to: tailRev, partition: partition}
-			stack = append(stack, child)
-			child.Visited = true
-		}
-	}
+	stack = append(stack, &tree)
 
 	for len(stack) > 0 {
 		// pop
@@ -105,14 +96,10 @@ func backwardSearch[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.Weight](jobs c
 		stack = stack[0 : len(stack)-1]
 
 		for _, child := range node.Children {
-			if child.Visited {
-				continue
-			}
-			// add edge
 			tailRev := node.Id
 			headRev := child.Id
 			jobs <- addFlagJob{from: headRev, to: tailRev, partition: partition}
-			if forwardGraph.GetNode(child.Id).Partition() != partition {
+			if forwardGraph.GetNode(child.Id).Partition() != partition && !child.Visited {
 				stack = append(stack, child)
 			}
 			child.Visited = true
