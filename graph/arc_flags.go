@@ -28,6 +28,8 @@ type IFlaggedHalfEdge[W Weight] interface {
 	// AddFlag sets the arc flag for the given partitionId to 1.
 	AddFlag(partitionId PartitionId) IFlaggedHalfEdge[W]
 	ResetFlag() IFlaggedHalfEdge[W]
+
+	FlagRange() PartitionId
 }
 
 // Capability description of a weighted half edge with two level arc flags
@@ -44,4 +46,7 @@ type ITwoLevelFlaggedHalfEdge[W Weight] interface {
 
 	AddL2Flag(partitionId PartitionId) ITwoLevelFlaggedHalfEdge[W]
 	ResetFlags() ITwoLevelFlaggedHalfEdge[W]
+
+	L1FlagRange() PartitionId
+	L2FlagRange() PartitionId
 }

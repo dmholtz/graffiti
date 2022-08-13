@@ -1,5 +1,7 @@
 package graph
 
+import "reflect"
+
 // Node types
 
 // Implementation of a blank node
@@ -97,6 +99,11 @@ func (fhe FlaggedHalfEdge[W, F]) ResetFlag() IFlaggedHalfEdge[W] {
 	return fhe
 }
 
+// FlagRange implements IFlaggedHalfEdge.FlagRange
+func (fhe FlaggedHalfEdge[W, F]) FlagRange() PartitionId {
+	return PartitionId(reflect.TypeOf(fhe.Flag).Bits())
+}
+
 // Simple implementation of a half edge with two level arc flags.
 type TwoLevelFlaggedHalfEdge[W Weight, F1, F2 FlagType] struct {
 	// TODO revert to nested struct once bug in golang has been fixed
@@ -141,4 +148,14 @@ func (fhe TwoLevelFlaggedHalfEdge[W, F1, F2]) ResetFlags() ITwoLevelFlaggedHalfE
 	fhe.L1Flag = 0
 	fhe.L2Flag = 0
 	return fhe
+}
+
+// L1FlagRange implements ITwoLevelFlaggedHalfEdge.L1FlagRange
+func (fhe TwoLevelFlaggedHalfEdge[W, F1, F2]) L1FlagRange() PartitionId {
+	return PartitionId(reflect.TypeOf(fhe.L1Flag).Bits())
+}
+
+// L2FlagRange implements ITwoLevelFlaggedHalfEdge.L2FlagRange
+func (fhe TwoLevelFlaggedHalfEdge[W, F1, F2]) L2FlagRange() PartitionId {
+	return PartitionId(reflect.TypeOf(fhe.L2Flag).Bits())
 }

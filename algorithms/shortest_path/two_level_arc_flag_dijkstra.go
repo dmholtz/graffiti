@@ -33,13 +33,14 @@ func TwoLevelArcFlagDijkstra[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEd
 			searchSpace = append(searchSpace, currentNodeId)
 		}
 
+		currentL1Part := graph.GetNode(currentNodeId).L1Part()
 		for _, edge := range graph.GetHalfEdgesFrom(currentNodeId) {
 			if !edge.IsL1Flagged(l1TargetPartition) {
 				continue
 			}
 
 			successor := edge.To()
-			if graph.GetNode(currentNodeId).L1Part() == l1TargetPartition && graph.GetNode(successor).L1Part() == l1TargetPartition {
+			if currentL1Part == l1TargetPartition && graph.GetNode(successor).L1Part() == l1TargetPartition {
 				if !edge.IsL2Flagged(l2TargetPartition) {
 					continue
 				}

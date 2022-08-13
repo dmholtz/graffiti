@@ -13,6 +13,13 @@ type AdjacencyMapGraph[N any, E IHalfEdge] struct {
 	EdgeCount_ int
 }
 
+func NewAdjacencyMap[N any, E IHalfEdge]() *AdjacencyMapGraph[N, E] {
+	amg := AdjacencyMapGraph[N, E]{}
+	amg.Nodes = make(map[NodeId]N)
+	amg.Edges = make(map[NodeId][]E)
+	return &amg
+}
+
 // NodeCount implements Graph.NodeCount
 func (amg *AdjacencyMapGraph[N, E]) NodeCount() int {
 	return len(amg.Nodes)
@@ -53,10 +60,10 @@ func (amg *AdjacencyMapGraph[N, E]) AddNode(id NodeId, n N) {
 // The method fails iff either tail or head node of the edge do not exist.
 // If the same edge already exists, nothing is changed, i.e. duplicate edges are ignored.
 func (amg *AdjacencyMapGraph[N, E]) InsertHalfEdge(tail NodeId, e E) {
-	if tail < 0 || tail >= amg.NodeCount() {
+	if _, ok := amg.Nodes[tail]; !ok {
 		panic(fmt.Sprintf("AdjacencyMapGraph does not contain the tail node with ID=%d.\n", tail))
 	}
-	if e.To() < 0 || e.To() >= amg.NodeCount() {
+	if _, ok := amg.Nodes[e.To()]; !ok {
 		panic(fmt.Sprintf("AdjacencyMapGraph does not contain the head node with ID=%d of the edge %v.\n", e.To(), e))
 	}
 	// check for duplicates
