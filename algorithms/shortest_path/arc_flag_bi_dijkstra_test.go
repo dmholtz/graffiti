@@ -13,7 +13,7 @@ import (
 func TestBidirectionalArcFlagDijkstra(t *testing.T) {
 	faag := loadAdjacencyArrayFromGob[g.PartGeoPoint, g.FlaggedHalfEdge[int, uint64]](arcflag64) // faag is a undirected graph
 
-	t.Logf("Compare %d random searches of bidirectional Dijkstra against textbook Dijkstra.\n", NUMBER_OF_RANDOM_TESTS)
+	t.Logf("Compare %d random searches of bidirectional ArcFlagDijkstra with unidirectional ArcFlagDijkstra.\n", NUMBER_OF_RANDOM_TESTS)
 	biPqPops, uniPqPops := 0, 0
 	for i := 0; i < NUMBER_OF_RANDOM_TESTS; i++ {
 		source := rand.Intn(faag.NodeCount())
