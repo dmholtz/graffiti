@@ -14,6 +14,7 @@ import (
 const NUMBER_OF_RANDOM_TESTS = 2000
 
 // Path to .gob files
+const defaultGraphFile = "testdata/geo_graph_7k.gob"
 const arcflag64 = "testdata/geograph_arcflag_64_7k.gob"
 
 // Deserializer

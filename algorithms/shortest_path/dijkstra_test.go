@@ -1,35 +1,32 @@
-package shortest_path
+package shortest_path_test
 
 import (
-	"encoding/gob"
-	"fmt"
-	"os"
+	"math"
+	"math/rand"
 	"testing"
 
+	sp "github.com/dmholtz/graffiti/algorithms/shortest_path"
 	g "github.com/dmholtz/graffiti/graph"
 )
 
-const defaultGraphFile = "testdata/geo_graph_7k.gob"
+// Differential testing: Compare the output of one-to-all Dijkstra to one-to-one Dijkstra
+func TestOneToAllDijkstra(t *testing.T) {
+	aag := loadAdjacencyArrayFromGob[g.GeoPoint, g.WeightedHalfEdge[int]](defaultGraphFile)
 
-func loadGraph(filename string) g.Graph[g.GeoPoint, g.WeightedHalfEdge[int]] {
-	var aag g.AdjacencyArrayGraph[g.GeoPoint, g.WeightedHalfEdge[int]]
+	t.Logf("Compare %d random searches of one-to-all Dijkstra with one-to-one Dijkstra.\n", NUMBER_OF_RANDOM_TESTS)
+	for i := 0; i < int(math.Sqrt(NUMBER_OF_RANDOM_TESTS)); i++ {
+		source := rand.Intn(aag.NodeCount())
 
-	gobGraphFile, err := os.Open(filename)
-	defer gobGraphFile.Close()
-	if err != nil {
-		panic(fmt.Sprintf("Error while reading .gob file '%s'", filename))
+		one2AllResult := sp.DijkstraOneToAll[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, source)
+
+		for j := 0; j < int(math.Sqrt(NUMBER_OF_RANDOM_TESTS)); j++ {
+			target := rand.Intn(aag.NodeCount())
+			one2OneResult := sp.Dijkstra[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, source, target, false)
+
+			if one2AllResult.Lengths[target] != one2OneResult.Length {
+				t.Errorf("[Path(source=%d, target=%d)]: Different lengths found: one-to-all Dijkstra=%d, one-to-one Dijkstra=%d\n", source, target, one2AllResult.Lengths[target], one2OneResult.Length)
+				return
+			}
+		}
 	}
-
-	dec := gob.NewDecoder(gobGraphFile)
-	err = dec.Decode(&aag)
-	if err != nil {
-		panic(fmt.Sprintf("Error while decoding .gob file '%s", filename))
-	}
-
-	return &aag
-}
-
-func TestDijkstra(t *testing.T) {
-	aag := loadGraph(defaultGraphFile)
-	t.Log(aag.NodeCount())
 }

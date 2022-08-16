@@ -19,6 +19,16 @@ type ShortestPathResult[W g.Weight] struct {
 	SearchSpace []g.NodeId
 }
 
+// Encapsulates the output of a one-to-all search of a shortest path algorithm.
+type ShortestPathToAllResult[W g.Weight] struct {
+	// Lengths stores the length of the shortest path from the source node to each node and -1 if such a path does not exist.
+	Lengths []W
+	// Predecessers store the predecessor node of each node on a shortest path starting at the source node and -1 if such a path does not exist.
+	Predecessors []g.NodeId
+	// PqPops reports the number of Pop() operations on the priority queue during the one-to-all shortest path computation.
+	PqPops int
+}
+
 // ShortestPathTreeNode encapsulates the directed, acyclic search graph (tree) spanned by Dijkstra's algorithm.
 type ShortestPathTreeNode struct {
 	// Id is the root element of this search tree and refers to a Node ID in the graph on which Dijkstra's algorithm has been applied.
