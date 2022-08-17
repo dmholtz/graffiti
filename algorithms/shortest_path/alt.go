@@ -2,6 +2,7 @@ package shortest_path
 
 import (
 	"math/rand"
+	"sync"
 
 	g "github.com/dmholtz/graffiti/graph"
 )
@@ -26,19 +27,31 @@ type AltHeuristic[W g.Weight] struct {
 
 func NewAltHeurisitc[N any, E g.IWeightedHalfEdge[W], W g.Weight](graph, transpose g.Graph[N, E], landmarks []g.NodeId) *AltHeuristic[W] {
 
-	// preprocessing
 	landmarkDistancesCollection := make(map[g.NodeId]LandmarkDistances[W], 0)
-	// TODO implement parallelization using go-routines
+
+	// parallelized implementation of ALT preprocessing following the producer - consumer pattern
+	jobs := make(chan LandmarkDistances[W])
+	done := make(chan bool)
+	wg := sync.WaitGroup{}
+
+	// single consumer: synchronizes and safely stores the results
+	go func(jobs <-chan LandmarkDistances[W], done chan<- bool) {
+		for landmarkDistances := range jobs {
+			landmarkDistancesCollection[landmarkDistances.Landmark] = landmarkDistances
+		}
+		done <- true
+	}(jobs, done)
+
+	// call multiple producers
 	for _, landmark := range landmarks {
-		// compute distances from landmark l to every node: one-to-all-dijkstra in (forward) graph starting at l
-		distancesFrom := DijkstraOneToAll[N, E, W](graph, landmark).Lengths
-
-		// compute distances from every node to landmark l: one-to-all-dijsktra in transposed graph starting at l
-		distancesTo := DijkstraOneToAll[N, E, W](transpose, landmark).Lengths
-
-		landmarkDistances := LandmarkDistances[W]{Landmark: landmark, From: distancesFrom, To: distancesTo}
-		landmarkDistancesCollection[landmark] = landmarkDistances
+		wg.Add(1)
+		go altPreprocessing(graph, transpose, landmark, jobs, &wg)
 	}
+
+	// safe teardown
+	wg.Wait()   // wait on producers
+	close(jobs) // close the jobs channel, since producers have finished
+	<-done      // waint on the consumer
 
 	ah := AltHeuristic[W]{LandmarkDistancesCollection: landmarkDistancesCollection, ActiveLandmarks: make([]LandmarkDistances[W], 0)}
 
@@ -48,6 +61,19 @@ func NewAltHeurisitc[N any, E g.IWeightedHalfEdge[W], W g.Weight](graph, transpo
 		ah.ActiveLandmarks = append(ah.ActiveLandmarks, landmarkDistances)
 	}
 	return &ah
+}
+
+// altPreprocessing is a producer function that does the preprocessing for a single landmark.
+// The method is designed for parallel implementation following the producer/consumer pattern.
+func altPreprocessing[N any, E g.IWeightedHalfEdge[W], W g.Weight](graph, transpose g.Graph[N, E], landmark g.NodeId, jobs chan<- LandmarkDistances[W], wg *sync.WaitGroup) {
+	// compute distances from landmark l to every node: one-to-all-dijkstra in (forward) graph starting at l
+	distancesFrom := DijkstraOneToAll[N, E, W](graph, landmark).Lengths
+
+	// compute distances from every node to landmark l: one-to-all-dijsktra in transposed graph starting at l
+	distancesTo := DijkstraOneToAll[N, E, W](transpose, landmark).Lengths
+
+	jobs <- LandmarkDistances[W]{Landmark: landmark, From: distancesFrom, To: distancesTo}
+	wg.Done()
 }
 
 // Init implements Heuristic.Init
