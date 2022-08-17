@@ -14,6 +14,7 @@ type Heuristic[W g.Weight] interface {
 	Evaluate(id g.NodeId) W
 }
 
+// A* with feasible heruistic is a lower-bounding algorithm
 func AStar[N any, E g.IWeightedHalfEdge[W], W g.Weight](graph g.Graph[N, E], heuristic Heuristic[W], source, target g.NodeId, recordSearchSpace bool) ShortestPathResult[W] {
 	var searchSpace []g.NodeId = nil
 	if recordSearchSpace {

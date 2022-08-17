@@ -35,5 +35,5 @@ func TestAlt(t *testing.T) {
 		dijkstraPqPops += dijkstraResult.PqPops
 	}
 	altPqPops, dijkstraPqPops = altPqPops/NUMBER_OF_RANDOM_TESTS, dijkstraPqPops/NUMBER_OF_RANDOM_TESTS
-	t.Logf("Avgerage number of PQ.Pop() operations: %d (Bi-ArcFlagDijkstra), %d (ArcFlagDijkstra)\n", altPqPops, dijkstraPqPops)
+	t.Logf("Avgerage number of PQ.Pop() operations: %d (ALT), %d (Dijkstra)\n", altPqPops, dijkstraPqPops)
 }
