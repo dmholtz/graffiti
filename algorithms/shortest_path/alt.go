@@ -1,6 +1,10 @@
 package shortest_path
 
-import g "github.com/dmholtz/graffiti/graph"
+import (
+	"math/rand"
+
+	g "github.com/dmholtz/graffiti/graph"
+)
 
 // Stores the lenghts of shortest path from/to a landmark L to/from every node
 type LandmarkDistances[W g.Weight] struct {
@@ -9,6 +13,7 @@ type LandmarkDistances[W g.Weight] struct {
 	To       []W      // stores the length of shortest paths from every node to L
 }
 
+// Heuristic for ALT algorithm (A*, Landmarks and Triangular Inequalities)
 type AltHeuristic[W g.Weight] struct {
 	LandmarkDistancesCollection map[g.NodeId]LandmarkDistances[W]
 
@@ -55,8 +60,8 @@ func (ah *AltHeuristic[W]) Init(source g.NodeId, target g.NodeId) {
 func (ah AltHeuristic[W]) Evaluate(id g.NodeId) W {
 	upper_bound := W(0)
 	for _, landmark := range ah.ActiveLandmarks {
-		upper_bound = max(upper_bound, landmark.From[ah.Target]-landmark.From[ah.Source])
-		upper_bound = max(upper_bound, landmark.To[ah.Source]-landmark.To[ah.Target])
+		upper_bound = max(upper_bound, landmark.From[ah.Target]-landmark.From[id])
+		upper_bound = max(upper_bound, landmark.To[id]-landmark.To[ah.Target])
 	}
 	return upper_bound
 }
@@ -69,4 +74,17 @@ func max[W g.Weight](a, b W) W {
 	} else {
 		return b
 	}
+}
+
+// UniformLandmarks chooses n nodes uniformly and at random from the graph.
+func UniformLandmarks[N any, E g.IHalfEdge](graph g.Graph[N, E], n int) []g.NodeId {
+	landmarks := make([]g.NodeId, 0, n)
+	// choose a seed that is different from the seed generating the test sequences
+	// otherwise, the landmarks would be severely biased
+	rand.Seed(rand.Int63())
+	for i := 0; i < n; i++ {
+		landmark := rand.Intn(graph.NodeCount())
+		landmarks = append(landmarks, landmark)
+	}
+	return landmarks
 }
