@@ -14,7 +14,7 @@ func TestAStar(t *testing.T) {
 	aag := loadAdjacencyArrayFromGob[g.GeoPoint, g.WeightedHalfEdge[int]](defaultGraphFile) // aag is a undirected graph
 
 	// Initialize the heurisitc
-	havHeurisitc := h.NewHaversineHeuristic[g.WeightedHalfEdge[int], int](aag)
+	havHeuristic := h.NewHaversineHeuristic[g.WeightedHalfEdge[int], int](aag)
 
 	t.Logf("Compare %d random searches of A* with Dijkstra's algorithm.\n", NUMBER_OF_RANDOM_TESTS)
 	aStarPqPops, dijkstraPqPops := 0, 0
@@ -22,7 +22,7 @@ func TestAStar(t *testing.T) {
 		source := rand.Intn(aag.NodeCount())
 		target := rand.Intn(aag.NodeCount())
 
-		aStarResult := sp.AStar[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, havHeurisitc, source, target, false)
+		aStarResult := sp.AStar[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, havHeuristic, source, target, false)
 		dijkstraResult := sp.Dijkstra[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, source, target, false)
 
 		if aStarResult.Length != dijkstraResult.Length {
