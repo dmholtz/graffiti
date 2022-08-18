@@ -54,6 +54,11 @@ func BidirectionalArcFlagDijkstra[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.
 		backwardNodeId := backwardPqItem.Id
 		pqPops += 2
 
+		if recordSearchSpace {
+			searchSpace = append(searchSpace, forwardNodeId)
+			searchSpace = append(searchSpace, backwardNodeId)
+		}
+
 		// forward search
 		for _, edge := range graph.GetHalfEdgesFrom(forwardNodeId) {
 			successor := edge.To()
@@ -71,11 +76,6 @@ func BidirectionalArcFlagDijkstra[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.
 			}
 			if !revEdge.IsFlagged(sourcePart) {
 				continue
-			}
-
-			if recordSearchSpace {
-				searchSpace = append(searchSpace, forwardNodeId)
-				searchSpace = append(searchSpace, backwardNodeId)
 			}
 
 			if dijkstraItemsForward[successor] == nil {

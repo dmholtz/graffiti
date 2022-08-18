@@ -51,14 +51,14 @@ func BidirectionalDijkstra[N any, E g.IWeightedHalfEdge[W], W g.Weight](graph, t
 		backwardNodeId := backwardPqItem.Id
 		pqPops += 2
 
+		if recordSearchSpace {
+			searchSpace = append(searchSpace, forwardNodeId)
+			searchSpace = append(searchSpace, backwardNodeId)
+		}
+
 		// forward search
 		for _, edge := range graph.GetHalfEdgesFrom(forwardNodeId) {
 			successor := edge.To()
-
-			if recordSearchSpace {
-				searchSpace = append(searchSpace, forwardNodeId)
-				searchSpace = append(searchSpace, backwardNodeId)
-			}
 
 			if dijkstraItemsForward[successor] == nil {
 				newPriority := dijkstraItemsForward[forwardNodeId].Priority + edge.Weight()
