@@ -159,3 +159,54 @@ func (fhe TwoLevelFlaggedHalfEdge[W, F1, F2]) L1FlagRange() PartitionId {
 func (fhe TwoLevelFlaggedHalfEdge[W, F1, F2]) L2FlagRange() PartitionId {
 	return PartitionId(reflect.TypeOf(fhe.L2Flag).Bits())
 }
+
+// Example of custom half edge with large arc flags (128 bit)
+type LargeFlaggedHalfEdge[W Weight] struct {
+	// TODO revert to nested struct once bug in golang has been fixed
+	To_     int
+	Weight_ W
+	MsbFlag uint64
+	LsbFlag uint64
+}
+
+// To implements IFlaggedHalfEdge.To
+func (lfe LargeFlaggedHalfEdge[W]) To() NodeId {
+	return lfe.To_
+}
+
+// Weight implements IFlaggedHalfEdge.Weight
+func (lfe LargeFlaggedHalfEdge[W]) Weight() W {
+	return lfe.Weight_
+}
+
+// IsFlagged implements IFlaggedHalfEdge.IsFlagged
+func (lfe LargeFlaggedHalfEdge[W]) IsFlagged(p PartitionId) bool {
+	if p < 64 {
+		return (lfe.LsbFlag & (1 << p)) > 0
+	} else {
+		return (lfe.MsbFlag & (1 << (p - 64))) > 0
+	}
+}
+
+// Adds a flag for partition p to the half edge
+func (lfe LargeFlaggedHalfEdge[W]) AddFlag(p PartitionId) IFlaggedHalfEdge[W] {
+	if p < 64 {
+		lfe.LsbFlag = lfe.LsbFlag | (1 << p)
+		return lfe
+	} else {
+		lfe.MsbFlag = lfe.MsbFlag | (1 << (p - 64))
+		return lfe
+	}
+}
+
+// Resets the flag vector of the half edeg
+func (lfe LargeFlaggedHalfEdge[W]) ResetFlag() IFlaggedHalfEdge[W] {
+	lfe.LsbFlag = 0
+	lfe.MsbFlag = 0
+	return lfe
+}
+
+// FlagRange implements IFlaggedHalfEdge.FlagRange
+func (lfe LargeFlaggedHalfEdge[W]) FlagRange() PartitionId {
+	return 128
+}
