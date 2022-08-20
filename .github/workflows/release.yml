@@ -1,0 +1,21 @@
+name: Release
+
+on:
+  release:
+    types: ["published"]
+
+jobs:
+
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+    
+    # Extract the tag name from the release
+    - name: Get release tag
+      run: |
+        echo ${{github.ref_name}}
+        echo "RELEASE_TAG=${{github.ref_name}}" >> $GITHUB_ENV
+    
+    # Make the module available by running the go list command to prompt Go to update its index of modules with information about the module being published.
+    - name: Call go list
+      run: GOPROXY=proxy.golang.org go list -m github.com/dmholtz/graffiti@$RELEASE_TAG
