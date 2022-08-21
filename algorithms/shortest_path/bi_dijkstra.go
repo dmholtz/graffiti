@@ -6,6 +6,21 @@ import (
 	g "github.com/dmholtz/graffiti/graph"
 )
 
+// BiDijkstraRouter implements the Router interface and features bidirectional search with Dijkstra's algorithm.
+//
+// Caveat: Always set the MaxInitializerValue to the maximum value of the generic type W, e.g. math.MaxInt in case of int.
+type BiDijkstraRouter[N any, E g.IWeightedHalfEdge[W], W g.Weight] struct {
+	Graph     g.Graph[N, E]
+	Transpose g.Graph[N, E]
+
+	MaxInitializerValue W
+}
+
+// String implements fmt.Stringer
+func (r BiDijkstraRouter[N, E, W]) String() string {
+	return "Bidirectional Dijkstra"
+}
+
 // Bidirectional Dijkstra runs a forward search from the source node to the target node in parallel with
 // a backward search in the backward graph (transpose) from the target node to the source node.
 //
@@ -13,7 +28,7 @@ import (
 // In case of undirected graphs, the same argument may be passed for both parameters.
 //
 // Reference: https://www.homepages.ucl.ac.uk/~ucahmto/math/2020/05/30/bidirectional-dijkstra.html
-func BidirectionalDijkstra[N any, E g.IWeightedHalfEdge[W], W g.Weight](graph, transpose g.Graph[N, E], source, target g.NodeId, recordSearchSpace bool, maxInitializerValue W) ShortestPathResult[W] {
+func (r BiDijkstraRouter[N, E, W]) Route(source, target g.NodeId, recordSearchSpace bool) ShortestPathResult[W] {
 	var searchSpace []g.NodeId = nil
 	if recordSearchSpace {
 		searchSpace = make([]g.NodeId, 0)
@@ -24,10 +39,10 @@ func BidirectionalDijkstra[N any, E g.IWeightedHalfEdge[W], W g.Weight](graph, t
 		return ShortestPathResult[W]{Length: W(0), Path: []g.NodeId{source}, PqPops: 0, SearchSpace: searchSpace}
 	}
 
-	dijkstraItemsForward := make([]*DijkstraPqItem[W], graph.NodeCount(), graph.NodeCount())
+	dijkstraItemsForward := make([]*DijkstraPqItem[W], r.Graph.NodeCount(), r.Graph.NodeCount())
 	dijkstraItemsForward[source] = &DijkstraPqItem[W]{Id: source, Priority: 0, Predecessor: -1}
 
-	dijkstraItemsBackward := make([]*DijkstraPqItem[W], transpose.NodeCount(), transpose.NodeCount())
+	dijkstraItemsBackward := make([]*DijkstraPqItem[W], r.Transpose.NodeCount(), r.Transpose.NodeCount())
 	dijkstraItemsBackward[target] = &DijkstraPqItem[W]{Id: target, Priority: 0, Predecessor: -1}
 
 	pqForward := make(DijkstraPriorityQueue[W], 0)
@@ -39,7 +54,7 @@ func BidirectionalDijkstra[N any, E g.IWeightedHalfEdge[W], W g.Weight](graph, t
 	heap.Push(&pqBackward, dijkstraItemsBackward[target])
 
 	// Once the algorithm terminates, mu contains the shortest path distance between source and target.
-	mu := maxInitializerValue // initialize with the largest representable number of weight type W
+	mu := r.MaxInitializerValue // initialize with the largest representable number of weight type W
 
 	middleNodeId := -1
 
@@ -57,7 +72,7 @@ func BidirectionalDijkstra[N any, E g.IWeightedHalfEdge[W], W g.Weight](graph, t
 		}
 
 		// forward search
-		for _, edge := range graph.GetHalfEdgesFrom(forwardNodeId) {
+		for _, edge := range r.Graph.GetHalfEdgesFrom(forwardNodeId) {
 			successor := edge.To()
 
 			if dijkstraItemsForward[successor] == nil {
@@ -81,7 +96,7 @@ func BidirectionalDijkstra[N any, E g.IWeightedHalfEdge[W], W g.Weight](graph, t
 		}
 
 		// backward search
-		for _, edge := range graph.GetHalfEdgesFrom(backwardNodeId) {
+		for _, edge := range r.Graph.GetHalfEdgesFrom(backwardNodeId) {
 			successor := edge.To()
 
 			if dijkstraItemsBackward[successor] == nil {
@@ -113,7 +128,7 @@ func BidirectionalDijkstra[N any, E g.IWeightedHalfEdge[W], W g.Weight](graph, t
 	res := ShortestPathResult[W]{Length: W(-1), Path: make([]g.NodeId, 0), PqPops: pqPops, SearchSpace: searchSpace}
 
 	// check if path exists
-	if mu < maxInitializerValue {
+	if mu < r.MaxInitializerValue {
 		res.Length = mu
 		// sanity check: length == dijkstraItemsForward[middleNodeId].priority + dijkstraItemsBackward[middleNodeId].priority
 		if dijkstraItemsForward[middleNodeId] != nil && dijkstraItemsBackward[middleNodeId] != nil {

@@ -6,15 +6,24 @@ import (
 	g "github.com/dmholtz/graffiti/graph"
 )
 
+type DijkstraRouter[N any, E g.IWeightedHalfEdge[W], W g.Weight] struct {
+	Graph g.Graph[N, E]
+}
+
+// String implements fmt.Stringer
+func (r DijkstraRouter[N, E, W]) String() string {
+	return "Dijkstra"
+}
+
 // Efficient implementation of Dijkstra's Algorithm for finding the shortest path between a source and a target node in the graph.
 // Implementation is based on a priority queue.
-func Dijkstra[N any, E g.IWeightedHalfEdge[W], W g.Weight](graph g.Graph[N, E], source, target g.NodeId, recordSearchSpace bool) ShortestPathResult[W] {
+func (r DijkstraRouter[N, E, W]) Route(source, target g.NodeId, recordSearchSpace bool) ShortestPathResult[W] {
 	var searchSpace []g.NodeId = nil
 	if recordSearchSpace {
 		searchSpace = make([]g.NodeId, 0)
 	}
 
-	dijkstraItems := make([]*DijkstraPqItem[W], graph.NodeCount(), graph.NodeCount())
+	dijkstraItems := make([]*DijkstraPqItem[W], r.Graph.NodeCount(), r.Graph.NodeCount())
 	dijkstraItems[source] = &DijkstraPqItem[W]{Id: source, Priority: 0, Predecessor: -1}
 
 	pq := make(DijkstraPriorityQueue[W], 0)
@@ -31,7 +40,7 @@ func Dijkstra[N any, E g.IWeightedHalfEdge[W], W g.Weight](graph g.Graph[N, E], 
 			searchSpace = append(searchSpace, currentNodeId)
 		}
 
-		for _, edge := range graph.GetHalfEdgesFrom(currentNodeId) {
+		for _, edge := range r.Graph.GetHalfEdgesFrom(currentNodeId) {
 			successor := edge.To()
 
 			if dijkstraItems[successor] == nil {

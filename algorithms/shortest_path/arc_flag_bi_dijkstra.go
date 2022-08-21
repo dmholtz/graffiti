@@ -6,6 +6,19 @@ import (
 	g "github.com/dmholtz/graffiti/graph"
 )
 
+// BidirectionalArcFlagRouter implements the Router interface and improves bidirectional Dijkstra's algorithm by incorporating arc flags.
+type BidirectionalArcFlagRouter[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.Weight] struct {
+	Graph     g.Graph[N, E]
+	Transpose g.Graph[N, E]
+
+	MaxInitializerValue W
+}
+
+// String implements fmt.Stringer
+func (r BidirectionalArcFlagRouter[N, E, W]) String() string {
+	return "Bidirectional ArcFlag Dijkstra"
+}
+
 // Bidirectional Dijkstra runs a forward search from the source node to the target node in parallel with
 // a backward search in the backward graph (transpose) from the target node to the source node.
 //
@@ -13,7 +26,7 @@ import (
 // In case of undirected graphs, the same argument may be passed for both parameters.
 //
 // Reference: https://www.homepages.ucl.ac.uk/~ucahmto/math/2020/05/30/bidirectional-dijkstra.html
-func BidirectionalArcFlagDijkstra[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.Weight](graph, transpose g.Graph[N, E], source, target g.NodeId, recordSearchSpace bool, maxInitializerValue W) ShortestPathResult[W] {
+func (r BidirectionalArcFlagRouter[N, E, W]) Route(source, target g.NodeId, recordSearchSpace bool) ShortestPathResult[W] {
 	var searchSpace []g.NodeId = nil
 	if recordSearchSpace {
 		searchSpace = make([]g.NodeId, 0)
@@ -24,10 +37,10 @@ func BidirectionalArcFlagDijkstra[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.
 		return ShortestPathResult[W]{Length: W(0), Path: []g.NodeId{source}, PqPops: 0, SearchSpace: searchSpace}
 	}
 
-	dijkstraItemsForward := make([]*DijkstraPqItem[W], graph.NodeCount(), graph.NodeCount())
+	dijkstraItemsForward := make([]*DijkstraPqItem[W], r.Graph.NodeCount(), r.Graph.NodeCount())
 	dijkstraItemsForward[source] = &DijkstraPqItem[W]{Id: source, Priority: 0, Predecessor: -1}
 
-	dijkstraItemsBackward := make([]*DijkstraPqItem[W], transpose.NodeCount(), transpose.NodeCount())
+	dijkstraItemsBackward := make([]*DijkstraPqItem[W], r.Transpose.NodeCount(), r.Transpose.NodeCount())
 	dijkstraItemsBackward[target] = &DijkstraPqItem[W]{Id: target, Priority: 0, Predecessor: -1}
 
 	pqForward := make(DijkstraPriorityQueue[W], 0)
@@ -39,12 +52,12 @@ func BidirectionalArcFlagDijkstra[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.
 	heap.Push(&pqBackward, dijkstraItemsBackward[target])
 
 	// Once the algorithm terminates, mu contains the shortest path distance between source and target.
-	mu := maxInitializerValue // initialize with the largest representable number of weight type W
+	mu := r.MaxInitializerValue // initialize with the largest representable number of weight type W
 
 	middleNodeId := -1
 
-	sourcePart := transpose.GetNode(source).Partition()
-	targetPart := graph.GetNode(target).Partition()
+	sourcePart := r.Transpose.GetNode(source).Partition()
+	targetPart := r.Graph.GetNode(target).Partition()
 
 	pqPops := 0
 	for len(pqForward) > 0 && len(pqBackward) > 0 {
@@ -60,7 +73,7 @@ func BidirectionalArcFlagDijkstra[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.
 		}
 
 		// forward search
-		for _, edge := range graph.GetHalfEdgesFrom(forwardNodeId) {
+		for _, edge := range r.Graph.GetHalfEdgesFrom(forwardNodeId) {
 			successor := edge.To()
 
 			if !edge.IsFlagged(targetPart) {
@@ -68,7 +81,7 @@ func BidirectionalArcFlagDijkstra[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.
 			}
 			// find the reverse edge
 			var revEdge E
-			for _, e := range transpose.GetHalfEdgesFrom(successor) {
+			for _, e := range r.Transpose.GetHalfEdgesFrom(successor) {
 				if e.To() == forwardNodeId {
 					revEdge = e
 					break
@@ -99,7 +112,7 @@ func BidirectionalArcFlagDijkstra[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.
 		}
 
 		// backward search
-		for _, edge := range graph.GetHalfEdgesFrom(backwardNodeId) {
+		for _, edge := range r.Graph.GetHalfEdgesFrom(backwardNodeId) {
 			successor := edge.To()
 
 			if !edge.IsFlagged(sourcePart) {
@@ -107,7 +120,7 @@ func BidirectionalArcFlagDijkstra[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.
 			}
 			// find the reverse edge
 			var revEdge E
-			for _, e := range graph.GetHalfEdgesFrom(successor) {
+			for _, e := range r.Graph.GetHalfEdgesFrom(successor) {
 				if e.To() == backwardNodeId {
 					revEdge = e
 					break
@@ -146,7 +159,7 @@ func BidirectionalArcFlagDijkstra[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.
 	res := ShortestPathResult[W]{Length: W(-1), Path: make([]g.NodeId, 0), PqPops: pqPops, SearchSpace: searchSpace}
 
 	// check if path exists
-	if mu < maxInitializerValue {
+	if mu < r.MaxInitializerValue {
 		res.Length = mu
 		// sanity check: length == dijkstraItemsForward[middleNodeId].priority + dijkstraItemsBackward[middleNodeId].priority
 		if dijkstraItemsForward[middleNodeId] != nil && dijkstraItemsBackward[middleNodeId] != nil {
