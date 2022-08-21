@@ -6,22 +6,32 @@ import (
 	g "github.com/dmholtz/graffiti/graph"
 )
 
-// Implementation of Dijkstra's Algorithm with arc flags
-func TwoLevelArcFlagDijkstra[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](graph g.Graph[N, E], source, target g.NodeId, recordSearchSpace bool) ShortestPathResult[W] {
+// TwoLevelArcFlagRouter implements the Router interface and improves Dijkstra's algorithm by incorporating two-level arc flags.
+type TwoLevelArcFlagRouter[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight] struct {
+	Graph g.Graph[N, E]
+}
+
+// String implements fmt.Stringer
+func (r TwoLevelArcFlagRouter[N, E, W]) String() string {
+	return "Two-level ArcFlag Dijkstra"
+}
+
+// Implementation of Dijkstra's Algorithm with two-level arc flags
+func (r TwoLevelArcFlagRouter[N, E, W]) Route(source, target g.NodeId, recordSearchSpace bool) ShortestPathResult[W] {
 	var searchSpace []g.NodeId = nil
 	if recordSearchSpace {
 		searchSpace = make([]g.NodeId, 0)
 	}
 
-	dijkstraItems := make([]*DijkstraPqItem[W], graph.NodeCount(), graph.NodeCount())
+	dijkstraItems := make([]*DijkstraPqItem[W], r.Graph.NodeCount(), r.Graph.NodeCount())
 	dijkstraItems[source] = &DijkstraPqItem[W]{Id: source, Priority: 0, Predecessor: -1}
 
 	pq := make(DijkstraPriorityQueue[W], 0)
 	heap.Init(&pq)
 	heap.Push(&pq, dijkstraItems[source])
 
-	l1TargetPartition := graph.GetNode(target).L1Part()
-	l2TargetPartition := graph.GetNode(target).L2Part()
+	l1TargetPartition := r.Graph.GetNode(target).L1Part()
+	l2TargetPartition := r.Graph.GetNode(target).L2Part()
 
 	pqPops := 0
 	for len(pq) > 0 {
@@ -33,14 +43,14 @@ func TwoLevelArcFlagDijkstra[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEd
 			searchSpace = append(searchSpace, currentNodeId)
 		}
 
-		currentL1Part := graph.GetNode(currentNodeId).L1Part()
-		for _, edge := range graph.GetHalfEdgesFrom(currentNodeId) {
+		currentL1Part := r.Graph.GetNode(currentNodeId).L1Part()
+		for _, edge := range r.Graph.GetHalfEdgesFrom(currentNodeId) {
 			if !edge.IsL1Flagged(l1TargetPartition) {
 				continue
 			}
 
 			successor := edge.To()
-			if currentL1Part == l1TargetPartition && graph.GetNode(successor).L1Part() == l1TargetPartition {
+			if currentL1Part == l1TargetPartition && r.Graph.GetNode(successor).L1Part() == l1TargetPartition {
 				if !edge.IsL2Flagged(l2TargetPartition) {
 					continue
 				}
