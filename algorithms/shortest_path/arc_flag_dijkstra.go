@@ -6,21 +6,31 @@ import (
 	g "github.com/dmholtz/graffiti/graph"
 )
 
+// ArcFlagRouter implements the Router interface and improves Dijkstra's algorithm by incorporating arc flags.
+type ArcFlagRouter[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.Weight] struct {
+	Graph g.Graph[N, E]
+}
+
+// String implements fmt.Stringer
+func (r ArcFlagRouter[N, E, W]) String() string {
+	return "ArcFlag Dijkstra"
+}
+
 // Implementation of Dijkstra's Algorithm with arc flags
-func ArcFlagDijkstra[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.Weight](graph g.Graph[N, E], source, target g.NodeId, recordSearchSpace bool) ShortestPathResult[W] {
+func (r ArcFlagRouter[N, E, W]) Route(source, target g.NodeId, recordSearchSpace bool) ShortestPathResult[W] {
 	var searchSpace []g.NodeId = nil
 	if recordSearchSpace {
 		searchSpace = make([]g.NodeId, 0)
 	}
 
-	dijkstraItems := make([]*DijkstraPqItem[W], graph.NodeCount(), graph.NodeCount())
+	dijkstraItems := make([]*DijkstraPqItem[W], r.Graph.NodeCount(), r.Graph.NodeCount())
 	dijkstraItems[source] = &DijkstraPqItem[W]{Id: source, Priority: 0, Predecessor: -1}
 
 	pq := make(DijkstraPriorityQueue[W], 0)
 	heap.Init(&pq)
 	heap.Push(&pq, dijkstraItems[source])
 
-	targetPartition := graph.GetNode(target).Partition()
+	targetPartition := r.Graph.GetNode(target).Partition()
 
 	pqPops := 0
 	for len(pq) > 0 {
@@ -32,7 +42,7 @@ func ArcFlagDijkstra[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.Weight](graph
 			searchSpace = append(searchSpace, currentNodeId)
 		}
 
-		for _, edge := range graph.GetHalfEdgesFrom(currentNodeId) {
+		for _, edge := range r.Graph.GetHalfEdgesFrom(currentNodeId) {
 			if !edge.IsFlagged(targetPartition) {
 				continue
 			}
