@@ -16,6 +16,10 @@ type Benchmarker[W g.Weight] struct {
 	Result    BenchmarkResult
 }
 
+func NewBenchmarker[W g.Weight](router sp.Router[W], nodeCount int) *Benchmarker[W] {
+	return &Benchmarker[W]{NodeRange: nodeCount, Router: router, Result: *NewBenchmarkResult()}
+}
+
 func (b Benchmarker[W]) Run(n int) Summary {
 	rand.Seed(DEFAULT_SEED)
 

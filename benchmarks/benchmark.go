@@ -13,6 +13,10 @@ type BenchmarkResult struct {
 	PqPopsDistribution []int     `json:"pq-pops"`
 }
 
+func NewBenchmarkResult() *BenchmarkResult {
+	return &BenchmarkResult{TimeDistribution: make([]float64, 0), PqPopsDistribution: make([]int, 0)}
+}
+
 // Add adds a new observation to the benchmark.
 func (br *BenchmarkResult) Add(time float64, pqPops int) {
 	br.TimeDistribution = append(br.TimeDistribution, time)
