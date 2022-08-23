@@ -11,14 +11,14 @@ import (
 
 const DEFAULT_BENCHMARK_SEED = 314159265359
 
-// Summary summarizes the result of a benchmark.
-type Summary struct {
+// BenchmarkSummary summarizes the result of a benchmark.
+type BenchmarkSummary struct {
 	Runs   int     // number of executions
 	Time   float64 // average execution time [ms]
 	PqPops int     // average number of Pop() operations on priority queue
 }
 
-func (s Summary) String() string {
+func (s BenchmarkSummary) String() string {
 	return fmt.Sprintf("Summary[runs: %d; mean runtime: %6.2fms; mean pq-pops: %6d]", s.Runs, s.Time, s.PqPops)
 }
 
@@ -39,11 +39,11 @@ func (br *BenchmarkResult) Add(time float64, pqPops int) {
 }
 
 // Summarize builds a summary of the benchmark.
-func (br BenchmarkResult) Summarize() Summary {
+func (br BenchmarkResult) Summarize() BenchmarkSummary {
 	runs := len(br.TimeDistribution)
 	time := mean(br.TimeDistribution)
 	pqPops := mean(br.PqPopsDistribution)
-	return Summary{Runs: runs, Time: time, PqPops: pqPops}
+	return BenchmarkSummary{Runs: runs, Time: time, PqPops: pqPops}
 }
 
 // mean computest the mean of a slice.
@@ -69,7 +69,7 @@ func NewBenchmarker[W g.Weight](router Router[W], nodeCount int) *Benchmarker[W]
 	return &Benchmarker[W]{NodeRange: nodeCount, Router: router, Result: *NewBenchmarkResult()}
 }
 
-func (b *Benchmarker[W]) Run(n int) Summary {
+func (b *Benchmarker[W]) Run(n int) BenchmarkSummary {
 	rand.Seed(DEFAULT_BENCHMARK_SEED)
 
 	for i := 0; i < n; i++ {
