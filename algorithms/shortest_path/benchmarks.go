@@ -1,6 +1,7 @@
 package shortest_path
 
 import (
+	"fmt"
 	"math"
 	"math/rand"
 	"time"
@@ -15,6 +16,10 @@ type Summary struct {
 	Runs   int     // number of executions
 	Time   float64 // average execution time [ms]
 	PqPops int     // average number of Pop() operations on priority queue
+}
+
+func (s Summary) String() string {
+	return fmt.Sprintf("Summary[runs: %d; mean runtime: %6.2fms; mean pq-pops: %6d]", s.Runs, s.Time, s.PqPops)
 }
 
 // BenchmarkResult reports details of a benchmark, i.e. the distribution of runtimes and pq-Pops.
