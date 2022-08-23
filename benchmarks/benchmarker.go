@@ -1,6 +1,7 @@
 package benchmarks
 
 import (
+	"math"
 	"math/rand"
 	"time"
 
@@ -29,7 +30,7 @@ func (b Benchmarker[W]) Run(n int) Summary {
 
 		start := time.Now()
 		routingResult := b.Router.Route(source, target, false)
-		time := float64(time.Since(start)) / 1000000 // ms
+		time := math.Round(float64(time.Since(start))/1000) / 1000 // ms
 
 		b.Result.Add(time, routingResult.PqPops)
 	}
