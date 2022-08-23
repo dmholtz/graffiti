@@ -69,7 +69,7 @@ func NewBenchmarker[W g.Weight](router Router[W], nodeCount int) *Benchmarker[W]
 	return &Benchmarker[W]{NodeRange: nodeCount, Router: router, Result: *NewBenchmarkResult()}
 }
 
-func (b Benchmarker[W]) Run(n int) Summary {
+func (b *Benchmarker[W]) Run(n int) Summary {
 	rand.Seed(DEFAULT_BENCHMARK_SEED)
 
 	for i := 0; i < n; i++ {
