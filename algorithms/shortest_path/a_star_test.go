@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	sp "github.com/dmholtz/graffiti/algorithms/shortest_path"
+	h "github.com/dmholtz/graffiti/examples/heuristics"
 	g "github.com/dmholtz/graffiti/graph"
-	h "github.com/dmholtz/graffiti/samples/heuristics"
 )
 
 // Differential testing: Compare the output of A* with HaversineHeuristic with Dijkstra's algorithm.
