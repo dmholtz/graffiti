@@ -8,6 +8,8 @@ import (
 	g "github.com/dmholtz/graffiti/graph"
 )
 
+const DEFAULT_BENCHMARK_SEED = 314159265359
+
 // Summary summarizes the result of a benchmark.
 type Summary struct {
 	Runs   int     // number of executions
@@ -52,20 +54,18 @@ func mean[N int | float64](slice []N) N {
 	}
 }
 
-const DEFAULT_SEED = 314159265359
-
 type Benchmarker[W g.Weight] struct {
 	NodeRange g.NodeId
-	Router    sp.Router[W]
+	Router    Router[W]
 	Result    BenchmarkResult
 }
 
-func NewBenchmarker[W g.Weight](router sp.Router[W], nodeCount int) *Benchmarker[W] {
+func NewBenchmarker[W g.Weight](router Router[W], nodeCount int) *Benchmarker[W] {
 	return &Benchmarker[W]{NodeRange: nodeCount, Router: router, Result: *NewBenchmarkResult()}
 }
 
 func (b Benchmarker[W]) Run(n int) Summary {
-	rand.Seed(DEFAULT_SEED)
+	rand.Seed(DEFAULT_BENCHMARK_SEED)
 
 	for i := 0; i < n; i++ {
 		source := rand.Intn(b.NodeRange)
