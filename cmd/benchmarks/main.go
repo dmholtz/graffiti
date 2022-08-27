@@ -32,6 +32,7 @@ func main() {
 	CompareAStar(false)
 	CompareArcFlagSize(false)
 	CompareLandmarkCount(false)
+	EvaluateArcflagAlt(false)
 }
 
 func Baseline(export bool) {
@@ -188,6 +189,30 @@ func CompareArcFlagSize(export bool) {
 		biArcflag64Benchmark,
 		arcflag128Benchmark,
 		biArcflag128Benchmark},
+		NUMBER_OF_RUNS,
+		export)
+}
+
+func EvaluateArcflagAlt(export bool) {
+
+	// Load graphs
+	falg128 := fmi.NewAdjacencyListFromFmi("graphs/ocean_equi_4_grid_arcflags128.fmi", fmi.ParsePartGeoPoint, fmi.ParseLargeFlaggedHalfEdge)
+	faag128 := g.NewAdjacencyArrayFromGraph[g.PartGeoPoint, g.LargeFlaggedHalfEdge[int]](falg128)
+
+	n := faag128.NodeCount()
+
+	// choose landmarks
+	landmarks := sp.UniformLandmarks[g.PartGeoPoint, g.LargeFlaggedHalfEdge[int]](faag128, 16)
+
+	// precompute heuristic
+	alt := sp.NewAltHeurisitc[g.PartGeoPoint, g.LargeFlaggedHalfEdge[int], int](faag128, faag128, landmarks)
+
+	// Build router
+	arcflagAltRouter := sp.ArcFlagAStarRouter[g.PartGeoPoint, g.LargeFlaggedHalfEdge[int], int]{Graph: faag128, Transpose: faag128, Heuristic: alt}
+	arcflagAltBenchmark := BenchmarkTask{Name: "bidirectional 128-bit arc flags + ALT", Benchmark: sp.NewBenchmarker[int](arcflagAltRouter, n), ResultFile: "benchmarks/arcflag-alt.json"}
+
+	RunBenchmarks([]BenchmarkTask{
+		arcflagAltBenchmark},
 		NUMBER_OF_RUNS,
 		export)
 }
