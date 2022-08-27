@@ -18,6 +18,9 @@
 !README.md
 !LICENSE
 
+# landmarks
+!graphs/landmarks/*.json
+
 # testdata
 !**/testdata/*.gob
 

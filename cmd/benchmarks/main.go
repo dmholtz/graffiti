@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"os"
 
@@ -32,6 +33,7 @@ func main() {
 	CompareAStar(false)
 	CompareArcFlagSize(false)
 	CompareLandmarkCount(false)
+	CompareLandmarkSelection(false)
 	EvaluateArcflagAlt(false)
 }
 
@@ -121,6 +123,41 @@ func CompareLandmarkCount(export bool) {
 		alt4Benchmark,
 		alt8Benchmark,
 		alt16Benchmark},
+		NUMBER_OF_RUNS,
+		export)
+}
+
+func CompareLandmarkSelection(export bool) {
+	// Load graphs
+
+	alg := fmi.NewAdjacencyListFromFmi(defaultGraph, fmi.ParseGeoPoint, fmi.ParseWeightedHalfEdge)
+	aag := g.NewAdjacencyArrayFromGraph[g.GeoPoint, g.WeightedHalfEdge[int]](alg)
+
+	n := aag.NodeCount()
+
+	// choose landmarks
+	randomLandmarks := sp.UniformLandmarks[g.GeoPoint, g.WeightedHalfEdge[int]](aag, 8)
+	oceanLandmarks := LoadLandmarkFile("graphs/landmarks/landmarks_ocean8.json")
+	coastLandmarks := LoadLandmarkFile("graphs/landmarks/landmarks_coast8.json")
+
+	// Build routers
+	altRand := sp.NewAltHeurisitc[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, aag, randomLandmarks)
+	altOcean := sp.NewAltHeurisitc[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, aag, oceanLandmarks)
+	altCoast := sp.NewAltHeurisitc[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, aag, coastLandmarks)
+
+	altRandRouter := sp.AStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Heuristic: altRand}
+	altRandBenchmark := BenchmarkTask{Name: "ALT (random landmarks)", Benchmark: sp.NewBenchmarker[int](altRandRouter, n), ResultFile: "benchmarks/alt-8-random.json"} // identical test is run in CompareLandmarkCount
+
+	altOceanRouter := sp.AStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Heuristic: altOcean}
+	altOceanBenchmark := BenchmarkTask{Name: "ALT (ocean landmarks)", Benchmark: sp.NewBenchmarker[int](altOceanRouter, n), ResultFile: "benchmarks/alt-8-ocean.json"}
+
+	altCoastRouter := sp.AStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Heuristic: altCoast}
+	altCoastBenchmark := BenchmarkTask{Name: "ALT (coast landmarks)", Benchmark: sp.NewBenchmarker[int](altCoastRouter, n), ResultFile: "benchmarks/alt-8-coast.json"}
+
+	RunBenchmarks([]BenchmarkTask{
+		altRandBenchmark,
+		altOceanBenchmark,
+		altCoastBenchmark},
 		NUMBER_OF_RUNS,
 		export)
 }
@@ -232,4 +269,11 @@ func RunBenchmarks(tasks []BenchmarkTask, n int, export bool) {
 func SaveBenchmark(task BenchmarkTask) {
 	file, _ := json.Marshal(task.Benchmark.Result)
 	os.WriteFile(task.ResultFile, file, 0644)
+}
+
+func LoadLandmarkFile(filename string) []g.NodeId {
+	var landmarks []g.NodeId
+	file, _ := ioutil.ReadFile(filename)
+	_ = json.Unmarshal([]byte(file), &landmarks)
+	return landmarks
 }
