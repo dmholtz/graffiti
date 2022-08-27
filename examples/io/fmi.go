@@ -168,3 +168,11 @@ func PartGeoPoint2FmiLine(id g.NodeId, node g.PartGeoPoint) string {
 func FlaggedHalfEdge2FmiLine(from g.NodeId, edge g.FlaggedHalfEdge[int, uint64]) string {
 	return fmt.Sprintf("%d %d %d %d\n", from, edge.To_, edge.Weight_, edge.Flag)
 }
+
+func TwoLevelPartGeoPoint2FmiLine(id g.NodeId, node g.TwoLevelPartGeoPoint) string {
+	return fmt.Sprintf("%d %f %f %d %d\n", id, node.Lat, node.Lon, node.L1Part_, node.L2Part_)
+}
+
+func TwoLevelFlaggedHalfEdge2FmiLine(from g.NodeId, edge g.TwoLevelFlaggedHalfEdge[int, uint64, uint64]) string {
+	return fmt.Sprintf("%d %d %d %d %d\n", from, edge.To_, edge.Weight_, edge.L1Flag, edge.L2Flag)
+}
