@@ -83,6 +83,34 @@ func NewAdjacencyListFromFmi[N any, E g.IHalfEdge](filename string, nodeParseFnc
 	return &alg
 }
 
+func WriteFmi[N any, E g.IHalfEdge](graph g.Graph[N, E], filename string, node2Fmi func(id g.NodeId, node N) string, edge2Fmi func(from g.NodeId, halfEdge E) string) {
+	file, cErr := os.Create(filename)
+
+	if cErr != nil {
+		log.Fatal(cErr)
+	}
+	writer := bufio.NewWriter(file)
+
+	// write number of nodes and number of edges
+	writer.WriteString(fmt.Sprintf("%d\n", graph.NodeCount()))
+	writer.WriteString(fmt.Sprintf("%d\n", graph.EdgeCount()))
+
+	// list all nodes structured as "id lat lon"
+	for i := 0; i < graph.NodeCount(); i++ {
+		node := graph.GetNode(i)
+		writer.WriteString(node2Fmi(i, node))
+	}
+
+	// list all edges structured as "fromId targetId distance"
+	for id := 0; id < graph.NodeCount(); id++ {
+		for _, halfEdge := range graph.GetHalfEdgesFrom(id) {
+			writer.WriteString(edge2Fmi(id, halfEdge))
+		}
+	}
+
+	writer.Flush()
+}
+
 func ParseGeoPoint(line string) (int, g.GeoPoint) {
 	var id int
 	var lat, lon float64
@@ -131,4 +159,12 @@ func Parse2LFlaggedHalfEdge(line string) (int, g.TwoLevelFlaggedHalfEdge[int, ui
 	var l1Flag, l2Flag uint64
 	fmt.Sscanf(line, "%d %d %d %d %d", &from, &to, &weight, &l1Flag, &l2Flag)
 	return from, g.TwoLevelFlaggedHalfEdge[int, uint64, uint64]{To_: to, Weight_: weight, L1Flag: l1Flag, L2Flag: l2Flag}
+}
+
+func PartGeoPoint2FmiLine(id g.NodeId, node g.PartGeoPoint) string {
+	return fmt.Sprintf("%d %f %f %d\n", id, node.Lat, node.Lon, node.Partition_)
+}
+
+func FlaggedHalfEdge2FmiLine(from g.NodeId, edge g.FlaggedHalfEdge[int, uint64]) string {
+	return fmt.Sprintf("%d %d %d %d\n", from, edge.To_, edge.Weight_, edge.Flag)
 }
