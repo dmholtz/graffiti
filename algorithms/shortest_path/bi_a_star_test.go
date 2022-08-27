@@ -14,8 +14,8 @@ func TestBidirectionalAStar(t *testing.T) {
 	aag := loadAdjacencyArrayFromGob[g.GeoPoint, g.WeightedHalfEdge[int]](defaultGraphFile) // aag is a undirected graph
 
 	// Initialize the heurisitc
-	havForwardHeuristic := h.NewHaversineHeuristic[g.WeightedHalfEdge[int], int](aag)
-	havBackwardHeuristic := h.NewHaversineHeuristic[g.WeightedHalfEdge[int], int](aag)
+	havForwardHeuristic := h.NewHaversineHeuristic[g.WeightedHalfEdge[int]](aag)
+	havBackwardHeuristic := h.NewHaversineHeuristic[g.WeightedHalfEdge[int]](aag)
 
 	testedRouter := sp.BidirectionalAStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Transpose: aag, ForwardHeuristic: havForwardHeuristic, BackwardHeuristic: havBackwardHeuristic, MaxInitializerValue: math.MaxInt}
 	baselineRouter := sp.AStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Heuristic: havForwardHeuristic}

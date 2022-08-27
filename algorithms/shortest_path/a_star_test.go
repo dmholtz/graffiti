@@ -13,7 +13,7 @@ func TestAStar(t *testing.T) {
 	aag := loadAdjacencyArrayFromGob[g.GeoPoint, g.WeightedHalfEdge[int]](defaultGraphFile) // aag is a undirected graph
 
 	// Initialize the heurisitc
-	havHeuristic := h.NewHaversineHeuristic[g.WeightedHalfEdge[int], int](aag)
+	havHeuristic := h.NewHaversineHeuristic[g.WeightedHalfEdge[int]](aag)
 
 	testedRouter := sp.AStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Heuristic: havHeuristic}
 	baselineRouter := sp.DijkstraRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag}

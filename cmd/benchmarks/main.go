@@ -7,6 +7,7 @@ import (
 	"os"
 
 	sp "github.com/dmholtz/graffiti/algorithms/shortest_path"
+	"github.com/dmholtz/graffiti/examples/heuristics"
 	fmi "github.com/dmholtz/graffiti/examples/io"
 	g "github.com/dmholtz/graffiti/graph"
 )
@@ -28,7 +29,9 @@ type BenchmarkTask struct {
 
 func main() {
 	Baseline(false)
-	//CompareArcFlagSize(false)
+	CompareAStar(false)
+	CompareArcFlagSize(false)
+	CompareLandmarkCount(false)
 }
 
 func Baseline(export bool) {
@@ -54,6 +57,71 @@ func Baseline(export bool) {
 		NUMBER_OF_RUNS,
 		export)
 
+}
+
+func CompareAStar(export bool) {
+	// Load graphs
+
+	alg := fmi.NewAdjacencyListFromFmi(defaultGraph, fmi.ParseGeoPoint, fmi.ParseWeightedHalfEdge)
+	aag := g.NewAdjacencyArrayFromGraph[g.GeoPoint, g.WeightedHalfEdge[int]](alg)
+
+	n := aag.NodeCount()
+
+	// Build routers
+
+	havHeuristic := heuristics.NewHaversineHeuristic[g.WeightedHalfEdge[int]](alg)
+	havBackwardHeuristic := heuristics.NewHaversineHeuristic[g.WeightedHalfEdge[int]](alg)
+
+	aStarRouter := sp.AStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Heuristic: havHeuristic}
+	aStarBenchmark := BenchmarkTask{Name: "A* Search", Benchmark: sp.NewBenchmarker[int](aStarRouter, n), ResultFile: "benchmarks/astar.json"}
+
+	biAStarRouter := sp.BidirectionalAStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Transpose: aag, ForwardHeuristic: havHeuristic, BackwardHeuristic: havBackwardHeuristic, MaxInitializerValue: math.MaxInt}
+	biAStarBenchmark := BenchmarkTask{Name: "Bidirectional A* Search", Benchmark: sp.NewBenchmarker[int](biAStarRouter, n), ResultFile: "benchmarks/bi-star.json"}
+
+	RunBenchmarks([]BenchmarkTask{
+		aStarBenchmark,
+		biAStarBenchmark},
+		NUMBER_OF_RUNS,
+		export)
+
+}
+
+func CompareLandmarkCount(export bool) {
+	// Load graphs
+
+	alg := fmi.NewAdjacencyListFromFmi(defaultGraph, fmi.ParseGeoPoint, fmi.ParseWeightedHalfEdge)
+	aag := g.NewAdjacencyArrayFromGraph[g.GeoPoint, g.WeightedHalfEdge[int]](alg)
+
+	n := aag.NodeCount()
+
+	// choose landmarks
+	landmarks := sp.UniformLandmarks[g.GeoPoint, g.WeightedHalfEdge[int]](aag, 16)
+
+	// Build routers
+	alt2 := sp.NewAltHeurisitc[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, aag, landmarks[:2])
+	alt4 := sp.NewAltHeurisitc[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, aag, landmarks[:4])
+	alt8 := sp.NewAltHeurisitc[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, aag, landmarks[:8])
+	alt16 := sp.NewAltHeurisitc[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, aag, landmarks[:16])
+
+	alt2Router := sp.AStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Heuristic: alt2}
+	alt2Benchmark := BenchmarkTask{Name: "ALT-2", Benchmark: sp.NewBenchmarker[int](alt2Router, n), ResultFile: "benchmarks/alt-2.json"}
+
+	alt4Router := sp.AStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Heuristic: alt4}
+	alt4Benchmark := BenchmarkTask{Name: "ALT-4", Benchmark: sp.NewBenchmarker[int](alt4Router, n), ResultFile: "benchmarks/alt-4.json"}
+
+	alt8Router := sp.AStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Heuristic: alt8}
+	alt8Benchmark := BenchmarkTask{Name: "ALT-8", Benchmark: sp.NewBenchmarker[int](alt8Router, n), ResultFile: "benchmarks/alt-8.json"}
+
+	alt16Router := sp.AStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Heuristic: alt16}
+	alt16Benchmark := BenchmarkTask{Name: "ALT-16", Benchmark: sp.NewBenchmarker[int](alt16Router, n), ResultFile: "benchmarks/alt-16.json"}
+
+	RunBenchmarks([]BenchmarkTask{
+		alt2Benchmark,
+		alt4Benchmark,
+		alt8Benchmark,
+		alt16Benchmark},
+		NUMBER_OF_RUNS,
+		export)
 }
 
 func CompareArcFlagSize(export bool) {
