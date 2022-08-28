@@ -18,6 +18,7 @@ const arcflag8 = "graphs/ocean_equi_4_grid_arcflags8_8.fmi"
 const arcflag16 = "graphs/ocean_equi_4_grid_arcflags16_16.fmi"
 const arcflag32 = "graphs/ocean_equi_4_grid_arcflags32_32.fmi"
 const arcflag64 = "/Users/david/repos/osm-ship-routing/graphs/ocean_equi_4_grid_arcflags.fmi"
+const arcflag64_kd = "/Users/david/repos/osm-ship-routing/graphs/ocean_equi_4_kd_arcflags.fmi"
 const arcflag128 = "graphs/ocean_equi_4_grid_arcflags128.fmi"
 
 const NUMBER_OF_RUNS = 100
@@ -32,6 +33,7 @@ func main() {
 	Baseline(false)
 	CompareAStar(false)
 	CompareArcFlagSize(false)
+	CompareGridType(false)
 	CompareLandmarkCount(false)
 	CompareLandmarkSelection(false)
 	EvaluateArcflagAlt(false)
@@ -226,6 +228,33 @@ func CompareArcFlagSize(export bool) {
 		biArcflag64Benchmark,
 		arcflag128Benchmark,
 		biArcflag128Benchmark},
+		NUMBER_OF_RUNS,
+		export)
+}
+
+func CompareGridType(export bool) {
+
+	// Load graphs
+
+	gridAlg64 := fmi.NewAdjacencyListFromFmi(arcflag64, fmi.ParsePartGeoPoint, fmi.ParseFlaggedHalfEdge)
+	gridAag64 := g.NewAdjacencyArrayFromGraph[g.PartGeoPoint, g.FlaggedHalfEdge[int, uint64]](gridAlg64)
+
+	kdAlg64 := fmi.NewAdjacencyListFromFmi(arcflag64_kd, fmi.ParsePartGeoPoint, fmi.ParseFlaggedHalfEdge)
+	kdAag64 := g.NewAdjacencyArrayFromGraph[g.PartGeoPoint, g.FlaggedHalfEdge[int, uint64]](kdAlg64)
+
+	n := kdAag64.NodeCount()
+
+	// Build routers
+
+	arcflagGridRouter := sp.ArcFlagRouter[g.PartGeoPoint, g.FlaggedHalfEdge[int, uint64], int]{Graph: gridAag64}
+	arcflagGridBenchmark := BenchmarkTask{Name: "64-bit arc flags (grid)", Benchmark: sp.NewBenchmarker[int](arcflagGridRouter, n), ResultFile: "benchmarks/arcflag64_grid.json"}
+
+	arcflagKdRouter := sp.ArcFlagRouter[g.PartGeoPoint, g.FlaggedHalfEdge[int, uint64], int]{Graph: kdAag64}
+	arcflagkdBenchmark := BenchmarkTask{Name: "64-bit arc flags (kd)", Benchmark: sp.NewBenchmarker[int](arcflagKdRouter, n), ResultFile: "benchmarks/bi-arcflag64.json"}
+
+	RunBenchmarks([]BenchmarkTask{
+		arcflagGridBenchmark,
+		arcflagkdBenchmark},
 		NUMBER_OF_RUNS,
 		export)
 }
