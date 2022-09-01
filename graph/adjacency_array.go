@@ -7,7 +7,7 @@ import "fmt"
 // Therefore, AdjacencyArrayGraph reduces the overhead induced by nested slices at the expense of being a non-expandable static graph.
 //
 // Please note: This implementation requires node indices from 0 to n-1, where n is the node count of the graph.
-// Graphs that do not fulfill this condition might be rather represented by an AdjacencyMapGraph.
+// Graphs that do not fulfill this condition should be wrapped by a wrapper that maps nodes to node ids.
 //
 // Implements the Graph interface
 type AdjacencyArrayGraph[N any, E IHalfEdge] struct {

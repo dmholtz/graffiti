@@ -5,7 +5,7 @@ import "fmt"
 // The adjacency list is a graph data structure which stores for each node a list of its adjacent nodes.
 //
 // Please note: This implementation requires node indices from 0 to n-1, where n is the node count of the graph.
-// Graphs that do not fulfill this condition might be rather represented by an AdjacencyMapGraph.
+// Graphs that do not fulfill this condition should be wrapped by a wrapper that maps nodes to node ids.
 //
 // Implements the Graph interface
 type AdjacencyListGraph[N any, E IHalfEdge] struct {
