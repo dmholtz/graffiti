@@ -40,6 +40,9 @@ Beside that, the following speed-up techniques as well as the required preproces
 - Dijkstra's algorithm with arc flags
 - Bidirectional Dijkstra's algorithm with arc flags
 - Dijkstra's algorithm with two-level arc flags
+- Combination of A\* search algorithm with arcflags
+    - unidirectional A\* search to avoid cumbersome stopping criterion
+    - incorporates bidirectional arcflags
 
 ## Demo
 
