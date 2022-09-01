@@ -21,7 +21,7 @@ const arcflag64 = "/Users/david/repos/osm-ship-routing/graphs/ocean_equi_4_grid_
 const arcflag64_kd = "/Users/david/repos/osm-ship-routing/graphs/ocean_equi_4_kd_arcflags.fmi"
 const arcflag128 = "graphs/ocean_equi_4_grid_arcflags128.fmi"
 
-const NUMBER_OF_RUNS = 100
+const NUMBER_OF_RUNS = 1000
 
 type BenchmarkTask struct {
 	Name       string
@@ -31,9 +31,9 @@ type BenchmarkTask struct {
 
 func main() {
 	Baseline(false)
-	CompareAStar(false)
 	CompareArcFlagSize(false)
 	CompareGridType(false)
+	CompareAStar(false)
 	CompareLandmarkCount(false)
 	CompareLandmarkSelection(false)
 	EvaluateArcflagAlt(false)
