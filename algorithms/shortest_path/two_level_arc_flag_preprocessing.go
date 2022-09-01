@@ -28,7 +28,7 @@ type addTwoLevelFlagJob struct {
 	kind      uint8
 }
 
-// Implementation with restricted types due to syntactic limitations of Golang
+// Parallel implementation of two-level arcflag preprocessing
 func ComputeTwoLevelArcFlags[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](forwardGraph, transposedGraph g.Graph[N, E]) *g.AdjacencyArrayGraph[N, E] {
 
 	// create a copy of the (forward) graph
@@ -86,6 +86,7 @@ func ComputeTwoLevelArcFlags[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEd
 		}
 	}
 
+	// parallel implementation following the producer-consumer pattern: cf. arc_flag_preprocessing.go
 	jobs := make(chan addTwoLevelFlagJob, 1<<10)
 	done := make(chan bool)
 	guard := make(chan struct{}, MAX_GOROUTINES)
@@ -94,6 +95,7 @@ func ComputeTwoLevelArcFlags[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEd
 	// start consumer
 	go addTwoLevelFlag[N, E, W](jobs, faag, done)
 
+	// start producers
 	for l1Part, nodeSet := range l1BoundaryNodes {
 		setSize := len(nodeSet)
 		wg.Add(setSize)
@@ -116,7 +118,6 @@ func ComputeTwoLevelArcFlags[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEd
 
 	wg.Wait()
 	fmt.Println("Done with L1 boundary nodes.")
-	// l1 partitions are now done
 
 	// precompute the l1 partition size for each l1 partition
 	l1PartSizes := make(map[g.PartitionId]int)
@@ -169,7 +170,6 @@ func ComputeTwoLevelArcFlags[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEd
 }
 
 // (single) consumer
-// TODO add the flag always to the edge with minimum weight
 func addTwoLevelFlag[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](jobs <-chan addTwoLevelFlagJob, faag *g.AdjacencyArrayGraph[N, E], done chan<- bool) {
 	for job := range jobs {
 		for i := faag.Offsets[job.from]; i < faag.Offsets[job.from+1]; i++ {
@@ -190,9 +190,8 @@ func addTwoLevelFlag[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEdge[W], W
 	done <- true
 }
 
-// producer function
-// TODO change edge type to IWeightedHalfEdge??
-func l1BoundaryBackwardSearch[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](jobs chan<- addTwoLevelFlagJob, forwardGraph, transposedGraph g.Graph[N, E], boundaryNodeId g.NodeId, wg *sync.WaitGroup, guard <-chan struct{}) {
+// producer function of level 1 arcflags
+func l1BoundaryBackwardSearch[N g.TwoLevelPartitioner, E g.IWeightedHalfEdge[W], W g.Weight](jobs chan<- addTwoLevelFlagJob, forwardGraph, transposedGraph g.Graph[N, E], boundaryNodeId g.NodeId, wg *sync.WaitGroup, guard <-chan struct{}) {
 	// calculate in reverse graph
 	tree := ShortestPathTree[N, E, W](transposedGraph, boundaryNodeId)
 	l1Part := forwardGraph.GetNode(boundaryNodeId).L1Part()
@@ -225,9 +224,8 @@ func l1BoundaryBackwardSearch[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfE
 	wg.Done()
 }
 
-// producer function
-// TODO change edge type to IWeightedHalfEdge??
-func l2BoundaryBackwardSearch[N g.TwoLevelPartitioner, E g.ITwoLevelFlaggedHalfEdge[W], W g.Weight](jobs chan<- addTwoLevelFlagJob, forwardGraph, transposedGraph g.Graph[N, E], boundaryNodeId g.NodeId, l1PartSize int, wg *sync.WaitGroup, guard <-chan struct{}) {
+// producer function of level 2 arcflags
+func l2BoundaryBackwardSearch[N g.TwoLevelPartitioner, E g.IWeightedHalfEdge[W], W g.Weight](jobs chan<- addTwoLevelFlagJob, forwardGraph, transposedGraph g.Graph[N, E], boundaryNodeId g.NodeId, l1PartSize int, wg *sync.WaitGroup, guard <-chan struct{}) {
 	l1Part := forwardGraph.GetNode(boundaryNodeId).L1Part()
 	l2Part := forwardGraph.GetNode(boundaryNodeId).L2Part()
 

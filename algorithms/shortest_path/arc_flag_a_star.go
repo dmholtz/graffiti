@@ -40,6 +40,7 @@ func (r ArcFlagAStarRouter[N, E, W]) Route(source, target g.NodeId, recordSearch
 
 	pqPops := 0
 	for len(pq) > 0 {
+		// A* search is unidirectional
 		currentPqItem := heap.Pop(&pq).(*AStarPqItem[W])
 		currentNodeId := currentPqItem.Id
 		pqPops++
@@ -54,6 +55,8 @@ func (r ArcFlagAStarRouter[N, E, W]) Route(source, target g.NodeId, recordSearch
 			if !edge.IsFlagged(targetPart) {
 				continue
 			}
+
+			// incorporate bidirectional arcflags without having to run a bidirectional A* search
 			// find the reverse edge
 			var revEdge E
 			for _, e := range r.Transpose.GetHalfEdgesFrom(successor) {

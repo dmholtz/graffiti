@@ -45,11 +45,14 @@ func (r TwoLevelArcFlagRouter[N, E, W]) Route(source, target g.NodeId, recordSea
 
 		currentL1Part := r.Graph.GetNode(currentNodeId).L1Part()
 		for _, edge := range r.Graph.GetHalfEdgesFrom(currentNodeId) {
+			// restrict the search space to the edges that are flagged with the l1-target-partition
 			if !edge.IsL1Flagged(l1TargetPartition) {
 				continue
 			}
 
 			successor := edge.To()
+
+			// if the current edge is within the l1-target-partition, check whether the l2-partition flag is set
 			if currentL1Part == l1TargetPartition && r.Graph.GetNode(successor).L1Part() == l1TargetPartition {
 				if !edge.IsL2Flagged(l2TargetPartition) {
 					continue

@@ -6,7 +6,7 @@ import (
 	g "github.com/dmholtz/graffiti/graph"
 )
 
-// Dijkstra's algorithm spans a directed, acyclic search graph (tree) with the source node being the root (entry point) of this search graph.
+// Dijkstra's algorithm spans a directed, acyclic search graph (tree) of all nodes being reachable from the source node (root of this search).
 // This is due to the fact that multiple shortest paths to the same node might exist.
 //
 // Note: The term 'search tree' refers to the output of the search and is used to avoid confusions with the input graph, i.e. the graph on which the search is conducted.

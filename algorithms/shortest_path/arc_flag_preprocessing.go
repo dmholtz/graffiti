@@ -15,15 +15,7 @@ type addFlagJob struct {
 
 const MAX_GOROUTINES = 8
 
-// Input: partitioned graph (max 64 partitions) with zero arc-flags
-// Output: partitioned graph with non-trivial arc-flags
-
-func b() {
-	var faag g.AdjacencyArrayGraph[g.PartGeoPoint, g.FlaggedHalfEdge[int, uint64]]
-	ComputeArcFlags[g.PartGeoPoint, g.FlaggedHalfEdge[int, uint64], int](&faag, &faag, 64)
-}
-
-// Implementation with restricted types due to syntactic limitations of Golang
+// Parallel implementation of arc flag preprocessing
 func ComputeArcFlags[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.Weight](forwardGraph, transposedGraph g.Graph[N, E], partitionCount int) *g.AdjacencyArrayGraph[N, E] {
 
 	// create a copy of the (forward) graph
@@ -34,50 +26,69 @@ func ComputeArcFlags[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.Weight](forwa
 		faag.Edges[i] = halfEdge.ResetFlag().(E)
 	}
 
+	// determine the flag range based on the first edge in the graph
+	if faag.EdgeCount() < 1 {
+		panic(fmt.Sprintf("Cannot compute arc flags - the graph does not contain any edges."))
+	}
+	flagRange := faag.Edges[0].FlagRange()
+
+	// check if every partition is within the respective flag range
+	for _, node := range faag.Nodes {
+		if node.Partition() >= flagRange {
+			panic(fmt.Sprintf("Partition exceeds flag range: %d >= %d", node.Partition(), flagRange))
+		}
+	}
+
 	// determine boundary nodes for each region
-	boundaryNodeSets := make([](map[g.NodeId]bool), 0) // TODO change bool to struct{}
+	boundaryNodeSets := make([](map[g.NodeId]struct{}), 0)
 	for i := 0; i < partitionCount; i++ {
-		boundaryNodeSets = append(boundaryNodeSets, make(map[g.NodeId]bool, 0))
+		boundaryNodeSets = append(boundaryNodeSets, make(map[g.NodeId]struct{}, 0))
 	}
 	for tailNodeId := range faag.Nodes {
 		for _, halfEdge := range faag.GetHalfEdgesFrom(tailNodeId) {
 			headPartition := faag.GetNode(halfEdge.To()).Partition()
 			if faag.GetNode(tailNodeId).Partition() != headPartition {
-				boundaryNodeSets[headPartition][halfEdge.To()] = true
+				boundaryNodeSets[headPartition][halfEdge.To()] = struct{}{}
 			}
 		}
 	}
 
-	jobs := make(chan addFlagJob, 1<<16)
-	done := make(chan bool)
-	guard := make(chan struct{}, MAX_GOROUTINES)
-	wg := sync.WaitGroup{}
+	// parallel implementation of arcflag preprocessing following the (multiple) producer - (single) consumer pattern.
+	// n producers: each consumer starts a backward search in the transposed graph from a boundary node and computes the arcflags (heavy workload)
+	// 1 consumer: the consumer synchronizes the results to avoid race conditions and writes the computed arcflags into memory (low workload)
+
+	jobs := make(chan addFlagJob, 1<<16) // buffered synchronization channel between producers and consumers
+	done := make(chan bool)              // indicates that the single consumer is done
+
+	guard := make(chan struct{}, MAX_GOROUTINES) // restrict the number of parallel processes to the number of CPU cores
+	wg := sync.WaitGroup{}                       // synchronizes the producers
 
 	// start consumer
 	go addFlag[N, E, W](jobs, faag, done)
 
+	// start producers in parallel
 	for partition, set := range boundaryNodeSets {
 		setSize := len(set)
 		wg.Add(setSize)
 		fmt.Printf("Partition: %d, size=%d\n", partition, setSize)
 		for boundaryNodeId := range set {
-			guard <- struct{}{}
+			guard <- struct{}{} // reserve 1 producer
 			go backwardSearch[N, E, W](jobs, forwardGraph, transposedGraph, g.PartitionId(partition), boundaryNodeId, &wg, guard)
 		}
 	}
-
-	wg.Wait()
-	close(jobs)
-	<-done
 
 	// revise edges within the same partition
 	for i := 0; i < faag.NodeCount(); i++ {
 		for _, halfEdge := range faag.GetHalfEdgesFrom(i) {
 			if faag.GetNode(i).Partition() == faag.GetNode(halfEdge.To()).Partition() {
-				addFlag1[N, E, W](faag, i, halfEdge.To(), faag.GetNode(i).Partition())
+				jobs <- addFlagJob{from: i, to: halfEdge.To(), partition: faag.GetNode(i).Partition()}
 			}
 		}
 	}
+
+	wg.Wait()   // await the producers
+	close(jobs) // close the job channel
+	<-done      // wait for the single consumer to terminate
 
 	return faag
 }
@@ -96,8 +107,8 @@ func backwardSearch[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.Weight](jobs c
 		stack = stack[0 : len(stack)-1]
 
 		for _, child := range node.Children {
-			tailRev := node.Id
-			headRev := child.Id
+			tailRev := node.Id  // tail node in the reversed graph
+			headRev := child.Id // head node in the reversed graph
 			jobs <- addFlagJob{from: headRev, to: tailRev, partition: partition}
 			if forwardGraph.GetNode(child.Id).Partition() != partition && !child.Visited {
 				stack = append(stack, child)
@@ -105,12 +116,13 @@ func backwardSearch[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.Weight](jobs c
 			child.Visited = true
 		}
 	}
-	<-guard
+	<-guard // free resources for next producer
 	wg.Done()
 }
 
 // (single) consumer
 func addFlag[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.Weight](jobs <-chan addFlagJob, faag *g.AdjacencyArrayGraph[N, E], done chan<- bool) {
+	// loop over jobs channel unti it is closed
 	for job := range jobs {
 		for i := faag.Offsets[job.from]; i < faag.Offsets[job.from+1]; i++ {
 			edge := faag.Edges[i]
@@ -120,15 +132,5 @@ func addFlag[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.Weight](jobs <-chan a
 			}
 		}
 	}
-	done <- true
-}
-
-func addFlag1[N g.Partitioner, E g.IFlaggedHalfEdge[W], W g.Weight](faag *g.AdjacencyArrayGraph[N, E], from g.NodeId, to g.NodeId, partition g.PartitionId) {
-	for i := faag.Offsets[from]; i < faag.Offsets[from+1]; i++ {
-		edge := faag.Edges[i]
-		if edge.To() == to {
-			faag.Edges[i] = edge.AddFlag(partition).(E)
-			break
-		}
-	}
+	done <- true // announce that consumer has terminated
 }

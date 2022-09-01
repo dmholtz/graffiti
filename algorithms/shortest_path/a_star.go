@@ -6,6 +6,7 @@ import (
 	g "github.com/dmholtz/graffiti/graph"
 )
 
+// Heuristic interface for A* Search
 type Heuristic[W g.Weight] interface {
 	// Init initializes the heuristic with the source and the target node id of the next search.
 	// The Init method must be called before any search by the search algorithm.
