@@ -33,6 +33,7 @@ func main() {
 	Baseline(false)
 	CompareArcFlagSize(false)
 	CompareGridType(false)
+	CompareTwoLevelArcFlagSize(false)
 	CompareAStar(false)
 	CompareLandmarkCount(false)
 	CompareLandmarkSelection(false)
@@ -228,6 +229,40 @@ func CompareArcFlagSize(export bool) {
 		biArcflag64Benchmark,
 		arcflag128Benchmark,
 		biArcflag128Benchmark},
+		NUMBER_OF_RUNS,
+		export)
+}
+
+func CompareTwoLevelArcFlagSize(export bool) {
+
+	// Load graphs
+
+	falg8 := fmi.NewAdjacencyListFromFmi(arcflag8, fmi.Parse2LPartGeoPoint, fmi.Parse2LFlaggedHalfEdge)
+	faag8 := g.NewAdjacencyArrayFromGraph[g.TwoLevelPartGeoPoint, g.TwoLevelFlaggedHalfEdge[int, uint64, uint64]](falg8)
+
+	falg16 := fmi.NewAdjacencyListFromFmi(arcflag16, fmi.Parse2LPartGeoPoint, fmi.Parse2LFlaggedHalfEdge)
+	faag16 := g.NewAdjacencyArrayFromGraph[g.TwoLevelPartGeoPoint, g.TwoLevelFlaggedHalfEdge[int, uint64, uint64]](falg16)
+
+	falg32 := fmi.NewAdjacencyListFromFmi(arcflag32, fmi.Parse2LPartGeoPoint, fmi.Parse2LFlaggedHalfEdge)
+	faag32 := g.NewAdjacencyArrayFromGraph[g.TwoLevelPartGeoPoint, g.TwoLevelFlaggedHalfEdge[int, uint64, uint64]](falg32)
+
+	n := faag8.NodeCount()
+
+	// Build routers
+
+	arcflag8Router := sp.TwoLevelArcFlagRouter[g.TwoLevelPartGeoPoint, g.TwoLevelFlaggedHalfEdge[int, uint64, uint64], int]{Graph: faag8}
+	arcflag8Benchmark := BenchmarkTask{Name: "two-level 8-bit arc flags", Benchmark: sp.NewBenchmarker[int](arcflag8Router, n), ResultFile: "benchmarks/arcflag8-2level.json"}
+
+	arcflag16Router := sp.TwoLevelArcFlagRouter[g.TwoLevelPartGeoPoint, g.TwoLevelFlaggedHalfEdge[int, uint64, uint64], int]{Graph: faag16}
+	arcflag16Benchmark := BenchmarkTask{Name: "two-level 16-bit arc flags", Benchmark: sp.NewBenchmarker[int](arcflag16Router, n), ResultFile: "benchmarks/arcflag16-2level.json"}
+
+	arcflag32Router := sp.TwoLevelArcFlagRouter[g.TwoLevelPartGeoPoint, g.TwoLevelFlaggedHalfEdge[int, uint64, uint64], int]{Graph: faag32}
+	arcflag32Benchmark := BenchmarkTask{Name: "two-level 32-bit arc flags", Benchmark: sp.NewBenchmarker[int](arcflag32Router, n), ResultFile: "benchmarks/arcflag32-2level.json"}
+
+	RunBenchmarks([]BenchmarkTask{
+		arcflag8Benchmark,
+		arcflag16Benchmark,
+		arcflag32Benchmark},
 		NUMBER_OF_RUNS,
 		export)
 }
