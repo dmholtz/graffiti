@@ -20,6 +20,7 @@ const arcflag32 = "graphs/ocean_equi_4_grid_arcflags32_32.fmi"
 const arcflag64 = "/Users/david/repos/osm-ship-routing/graphs/ocean_equi_4_grid_arcflags.fmi"
 const arcflag64_kd = "/Users/david/repos/osm-ship-routing/graphs/ocean_equi_4_kd_arcflags.fmi"
 const arcflag128 = "graphs/ocean_equi_4_grid_arcflags128.fmi"
+const arcflag256 = "graphs/ocean_equi_4_grid_arcflags256.fmi"
 
 const NUMBER_OF_RUNS = 1000
 
@@ -181,8 +182,11 @@ func CompareArcFlagSize(export bool) {
 	falg64 := fmi.NewAdjacencyListFromFmi(arcflag64, fmi.ParsePartGeoPoint, fmi.ParseFlaggedHalfEdge)
 	faag64 := g.NewAdjacencyArrayFromGraph[g.PartGeoPoint, g.FlaggedHalfEdge[int, uint64]](falg64)
 
-	falg128 := fmi.NewAdjacencyListFromFmi("graphs/ocean_equi_4_grid_arcflags128.fmi", fmi.ParsePartGeoPoint, fmi.ParseLargeFlaggedHalfEdge)
+	falg128 := fmi.NewAdjacencyListFromFmi(arcflag128, fmi.ParsePartGeoPoint, fmi.ParseLargeFlaggedHalfEdge)
 	faag128 := g.NewAdjacencyArrayFromGraph[g.PartGeoPoint, g.LargeFlaggedHalfEdge[int]](falg128)
+
+	falg256 := fmi.NewAdjacencyListFromFmi(arcflag256, fmi.ParsePartGeoPoint, fmi.Parse256BitFlaggedHalfEdge)
+	faag256 := g.NewAdjacencyArrayFromGraph[g.PartGeoPoint, g.B256FlaggedHalfEdge[int]](falg256)
 
 	n := faag8.NodeCount()
 
@@ -218,6 +222,12 @@ func CompareArcFlagSize(export bool) {
 	biArcflag128Router := sp.BidirectionalArcFlagRouter[g.PartGeoPoint, g.LargeFlaggedHalfEdge[int], int]{Graph: faag128, Transpose: faag128, MaxInitializerValue: math.MaxInt}
 	biArcflag128Benchmark := BenchmarkTask{Name: "bidirectional 128-bit arc flags", Benchmark: sp.NewBenchmarker[int](biArcflag128Router, n), ResultFile: "benchmarks/bi-arcflag128.json"}
 
+	arcflag256Router := sp.ArcFlagRouter[g.PartGeoPoint, g.B256FlaggedHalfEdge[int], int]{Graph: faag256}
+	arcflag256Benchmark := BenchmarkTask{Name: "256-bit arc flags", Benchmark: sp.NewBenchmarker[int](arcflag256Router, n), ResultFile: "benchmarks/arcflag256.json"}
+
+	biArcflag256Router := sp.BidirectionalArcFlagRouter[g.PartGeoPoint, g.B256FlaggedHalfEdge[int], int]{Graph: faag256, Transpose: faag256, MaxInitializerValue: math.MaxInt}
+	biArcflag256Benchmark := BenchmarkTask{Name: "bidirectional 256-bit arc flags", Benchmark: sp.NewBenchmarker[int](biArcflag256Router, n), ResultFile: "benchmarks/bi-arcflag256.json"}
+
 	RunBenchmarks([]BenchmarkTask{
 		arcflag8Benchmark,
 		biArcflag8Benchmark,
@@ -228,7 +238,9 @@ func CompareArcFlagSize(export bool) {
 		arcflag64Benchmark,
 		biArcflag64Benchmark,
 		arcflag128Benchmark,
-		biArcflag128Benchmark},
+		biArcflag128Benchmark,
+		arcflag256Benchmark,
+		biArcflag256Benchmark},
 		NUMBER_OF_RUNS,
 		export)
 }
