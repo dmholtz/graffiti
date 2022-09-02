@@ -309,20 +309,20 @@ func CompareGridType(export bool) {
 func EvaluateArcflagAlt(export bool) {
 
 	// Load graphs
-	falg128 := fmi.NewAdjacencyListFromFmi("graphs/ocean_equi_4_grid_arcflags128.fmi", fmi.ParsePartGeoPoint, fmi.ParseLargeFlaggedHalfEdge)
-	faag128 := g.NewAdjacencyArrayFromGraph[g.PartGeoPoint, g.LargeFlaggedHalfEdge[int]](falg128)
+	falg256 := fmi.NewAdjacencyListFromFmi("graphs/ocean_equi_4_grid_arcflags256.fmi", fmi.ParsePartGeoPoint, fmi.Parse256BitFlaggedHalfEdge)
+	faag256 := g.NewAdjacencyArrayFromGraph[g.PartGeoPoint, g.B256FlaggedHalfEdge[int]](falg256)
 
-	n := faag128.NodeCount()
+	n := faag256.NodeCount()
 
 	// choose landmarks
-	landmarks := sp.UniformLandmarks[g.PartGeoPoint, g.LargeFlaggedHalfEdge[int]](faag128, 16)
+	landmarks := sp.UniformLandmarks[g.PartGeoPoint, g.B256FlaggedHalfEdge[int]](faag256, 16)
 
 	// precompute heuristic
-	alt := sp.NewAltHeurisitc[g.PartGeoPoint, g.LargeFlaggedHalfEdge[int], int](faag128, faag128, landmarks)
+	alt := sp.NewAltHeurisitc[g.PartGeoPoint, g.B256FlaggedHalfEdge[int], int](faag256, faag256, landmarks)
 
 	// Build router
-	arcflagAltRouter := sp.ArcFlagAStarRouter[g.PartGeoPoint, g.LargeFlaggedHalfEdge[int], int]{Graph: faag128, Transpose: faag128, Heuristic: alt}
-	arcflagAltBenchmark := BenchmarkTask{Name: "bidirectional 128-bit arc flags + ALT", Benchmark: sp.NewBenchmarker[int](arcflagAltRouter, n), ResultFile: "benchmarks/arcflag-alt.json"}
+	arcflagAltRouter := sp.ArcFlagAStarRouter[g.PartGeoPoint, g.B256FlaggedHalfEdge[int], int]{Graph: faag256, Transpose: faag256, Heuristic: alt}
+	arcflagAltBenchmark := BenchmarkTask{Name: "bidirectional 256-bit arc flags + ALT", Benchmark: sp.NewBenchmarker[int](arcflagAltRouter, n), ResultFile: "benchmarks/arcflag-alt.json"}
 
 	RunBenchmarks([]BenchmarkTask{
 		arcflagAltBenchmark},
