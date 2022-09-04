@@ -37,7 +37,7 @@ func main() {
 	CompareTwoLevelArcFlagSize(false)
 	CompareAStar(false)
 	CompareLandmarkCount(false)
-	CompareLandmarkSelection(true)
+	CompareLandmarkSelection(false)
 	EvaluateArcflagAlt(false)
 }
 
