@@ -17,8 +17,8 @@ const defaultGraph = "graphs/ocean_equi_4.fmi"
 const arcflag8 = "graphs/ocean_equi_4_grid_arcflags8_8.fmi"
 const arcflag16 = "graphs/ocean_equi_4_grid_arcflags16_16.fmi"
 const arcflag32 = "graphs/ocean_equi_4_grid_arcflags32_32.fmi"
-const arcflag64 = "/Users/david/repos/osm-ship-routing/graphs/ocean_equi_4_grid_arcflags.fmi"
-const arcflag64_kd = "/Users/david/repos/osm-ship-routing/graphs/ocean_equi_4_kd_arcflags.fmi"
+const arcflag64 = "graphs/ocean_equi_4_grid_arcflags64.fmi"
+const arcflag64_kd = "graphs/ocean_equi_4_kd_arcflags64.fmi"
 const arcflag128 = "graphs/ocean_equi_4_grid_arcflags128.fmi"
 const arcflag256 = "graphs/ocean_equi_4_grid_arcflags256.fmi"
 
@@ -37,7 +37,7 @@ func main() {
 	CompareTwoLevelArcFlagSize(false)
 	CompareAStar(false)
 	CompareLandmarkCount(false)
-	CompareLandmarkSelection(false)
+	CompareLandmarkSelection(true)
 	EvaluateArcflagAlt(false)
 }
 
