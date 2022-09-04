@@ -1,7 +1,6 @@
 package partitioning
 
 import (
-	"fmt"
 	"math"
 
 	g "github.com/dmholtz/graffiti/graph"
@@ -9,9 +8,6 @@ import (
 
 // GridPartitioning is a preprocessing step for arc flags and computes the grid partitioning of a graph of GeoPoints.
 func GridPartitioning[E g.IHalfEdge](graph *g.AdjacencyArrayGraph[g.PartGeoPoint, E], lat, lon int) *g.AdjacencyArrayGraph[g.PartGeoPoint, E] {
-	if lat*lon > 255 {
-		panic(fmt.Sprintf("256 bit are reserved for partitions. Got: lat * lon > 255"))
-	}
 
 	for i := 0; i < graph.NodeCount(); i++ {
 		geoPoint := graph.GetNode(i)

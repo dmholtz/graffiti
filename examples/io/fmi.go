@@ -159,6 +159,13 @@ func ParseLargeFlaggedHalfEdge(line string) (int, g.LargeFlaggedHalfEdge[int]) {
 	return from, g.LargeFlaggedHalfEdge[int]{To_: to, Weight_: weight, MsbFlag: msbFlag, LsbFlag: lsbFlag}
 }
 
+func Parse256BitFlaggedHalfEdge(line string) (int, g.B256FlaggedHalfEdge[int]) {
+	var from, to, weight int
+	var f1, f2, f3, f4 uint64
+	fmt.Sscanf(line, "%d %d %d %d %d %d %d", &from, &to, &weight, &f1, &f2, &f3, &f4)
+	return from, g.B256FlaggedHalfEdge[int]{To_: to, Weight_: weight, Flag_: [4]uint64{f1, f2, f3, f4}}
+}
+
 func Parse2LFlaggedHalfEdge(line string) (int, g.TwoLevelFlaggedHalfEdge[int, uint64, uint64]) {
 	var from, to, weight int
 	var l1Flag, l2Flag uint64
@@ -174,6 +181,10 @@ func PartGeoPoint2FmiLine(id g.NodeId, node g.PartGeoPoint) string {
 
 func FlaggedHalfEdge2FmiLine(from g.NodeId, edge g.FlaggedHalfEdge[int, uint64]) string {
 	return fmt.Sprintf("%d %d %d %d\n", from, edge.To_, edge.Weight_, edge.Flag)
+}
+
+func B256FlaggedHalfEdge2FmiLine(from g.NodeId, edge g.B256FlaggedHalfEdge[int]) string {
+	return fmt.Sprintf("%d %d %d %d %d %d %d\n", from, edge.To_, edge.Weight_, edge.Flag_[0], edge.Flag_[1], edge.Flag_[2], edge.Flag_[3])
 }
 
 func TwoLevelPartGeoPoint2FmiLine(id g.NodeId, node g.TwoLevelPartGeoPoint) string {

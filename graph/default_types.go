@@ -210,3 +210,49 @@ func (lfe LargeFlaggedHalfEdge[W]) ResetFlag() IFlaggedHalfEdge[W] {
 func (lfe LargeFlaggedHalfEdge[W]) FlagRange() PartitionId {
 	return 128
 }
+
+// Example of custom half edge with large arc flags (256 bit)
+type B256FlaggedHalfEdge[W Weight] struct {
+	// TODO revert to nested struct once bug in golang has been fixed
+	To_     int
+	Weight_ W
+	Flag_   [4]uint64
+}
+
+// To implements IFlaggedHalfEdge.To
+func (fhe B256FlaggedHalfEdge[W]) To() NodeId {
+	return fhe.To_
+}
+
+// Weight implements IFlaggedHalfEdge.Weight
+func (fhe B256FlaggedHalfEdge[W]) Weight() W {
+	return fhe.Weight_
+}
+
+// IsFlagged implements IFlaggedHalfEdge.IsFlagged
+func (fhe B256FlaggedHalfEdge[W]) IsFlagged(p PartitionId) bool {
+	sec := p >> 6 // division by 64
+	bit := p % 64
+	return (fhe.Flag_[sec] & (1 << bit)) > 0
+}
+
+// Adds a flag for partition p to the half edge
+func (fhe B256FlaggedHalfEdge[W]) AddFlag(p PartitionId) IFlaggedHalfEdge[W] {
+	sec := p >> 6 // division by 64
+	bit := p % 64
+	fhe.Flag_[sec] = fhe.Flag_[sec] | (1 << bit)
+	return fhe
+}
+
+// Resets the flag vector of the half edeg
+func (fhe B256FlaggedHalfEdge[W]) ResetFlag() IFlaggedHalfEdge[W] {
+	for i := range fhe.Flag_ {
+		fhe.Flag_[i] = 0
+	}
+	return fhe
+}
+
+// FlagRange implements IFlaggedHalfEdge.FlagRange
+func (_ B256FlaggedHalfEdge[W]) FlagRange() PartitionId {
+	return 256
+}
