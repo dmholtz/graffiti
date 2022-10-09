@@ -83,7 +83,7 @@ func CompareAStar(export bool) {
 	aStarBenchmark := BenchmarkTask{Name: "A* Search", Benchmark: sp.NewBenchmarker[int](aStarRouter, n), ResultFile: "benchmarks/astar.json"}
 
 	biAStarRouter := sp.BidirectionalAStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Transpose: aag, ForwardHeuristic: havHeuristic, BackwardHeuristic: havBackwardHeuristic, MaxInitializerValue: math.MaxInt}
-	biAStarBenchmark := BenchmarkTask{Name: "Bidirectional A* Search", Benchmark: sp.NewBenchmarker[int](biAStarRouter, n), ResultFile: "benchmarks/bi-star.json"}
+	biAStarBenchmark := BenchmarkTask{Name: "Bidirectional A* Search", Benchmark: sp.NewBenchmarker[int](biAStarRouter, n), ResultFile: "benchmarks/bi-astar.json"}
 
 	RunBenchmarks([]BenchmarkTask{
 		aStarBenchmark,
