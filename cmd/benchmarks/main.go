@@ -102,13 +102,15 @@ func CompareLandmarkCount(export bool) {
 	n := aag.NodeCount()
 
 	// choose landmarks
-	landmarks := sp.UniformLandmarks[g.GeoPoint, g.WeightedHalfEdge[int]](aag, 16)
+	landmarks := sp.UniformLandmarks[g.GeoPoint, g.WeightedHalfEdge[int]](aag, 64)
 
 	// Build routers
 	alt2 := sp.NewAltHeurisitc[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, aag, landmarks[:2])
 	alt4 := sp.NewAltHeurisitc[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, aag, landmarks[:4])
 	alt8 := sp.NewAltHeurisitc[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, aag, landmarks[:8])
 	alt16 := sp.NewAltHeurisitc[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, aag, landmarks[:16])
+	alt32 := sp.NewAltHeurisitc[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, aag, landmarks[:32])
+	alt64 := sp.NewAltHeurisitc[g.GeoPoint, g.WeightedHalfEdge[int], int](aag, aag, landmarks[:64])
 
 	alt2Router := sp.AStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Heuristic: alt2}
 	alt2Benchmark := BenchmarkTask{Name: "ALT-2", Benchmark: sp.NewBenchmarker[int](alt2Router, n), ResultFile: "benchmarks/alt-2.json"}
@@ -122,11 +124,19 @@ func CompareLandmarkCount(export bool) {
 	alt16Router := sp.AStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Heuristic: alt16}
 	alt16Benchmark := BenchmarkTask{Name: "ALT-16", Benchmark: sp.NewBenchmarker[int](alt16Router, n), ResultFile: "benchmarks/alt-16.json"}
 
+	alt32Router := sp.AStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Heuristic: alt32}
+	alt32Benchmark := BenchmarkTask{Name: "ALT-32", Benchmark: sp.NewBenchmarker[int](alt32Router, n), ResultFile: "benchmarks/alt-32.json"}
+
+	alt64Router := sp.AStarRouter[g.GeoPoint, g.WeightedHalfEdge[int], int]{Graph: aag, Heuristic: alt64}
+	alt64Benchmark := BenchmarkTask{Name: "ALT-64", Benchmark: sp.NewBenchmarker[int](alt64Router, n), ResultFile: "benchmarks/alt-64.json"}
+
 	RunBenchmarks([]BenchmarkTask{
 		alt2Benchmark,
 		alt4Benchmark,
 		alt8Benchmark,
-		alt16Benchmark},
+		alt16Benchmark,
+		alt32Benchmark,
+		alt64Benchmark},
 		NUMBER_OF_RUNS,
 		export)
 }
